@@ -18,3 +18,8 @@ c.communicate([{"$type": "set_screen_size",
 for hdri_skybox in ["industrial_sunset_4k", "misty_pines_4k", "harties_4k"]:
     c.communicate(c.get_add_hdri_skybox(hdri_skybox))
 c.communicate({"$type": "terminate"})
+"""
+one can adopt microservices architecture. it means that we can break the functionalities into components that 
+works interact with each other using APIs. These individual components are independent of each other and that 
+makes the app scalable and flexibly when setting on different platforms.
+"""
