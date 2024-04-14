@@ -18,8 +18,6 @@ c = Controller()
 
 
 
-
-
 #三个的表格
 materials = ["bronze_yellow", "wood_teak", "plastic_vinyl_glossy_yellow"]
 colors = ["red", "green", "blue"]
