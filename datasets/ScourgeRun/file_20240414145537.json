@@ -1,0 +1,27 @@
+{
+    "1": {
+        "material": "plastic_vinyl_glossy_yellow",
+        "color": "red",
+        "category": "iron_box"
+    },
+    "2": {
+        "material": "plastic_vinyl_glossy_yellow",
+        "color": "red",
+        "category": "alarm_clock"
+    },
+    "3": {
+        "material": "bronze_yellow",
+        "color": "blue",
+        "category": "alarm_clock"
+    },
+    "4": {
+        "material": "plastic_vinyl_glossy_yellow",
+        "color": "blue",
+        "category": "alarm_clock"
+    },
+    "5": {
+        "material": "wood_teak",
+        "color": "red",
+        "category": "alarm_clock"
+    }
+}
