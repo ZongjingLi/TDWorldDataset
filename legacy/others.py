@@ -22,4 +22,5 @@ c.add_ons.extend([proc_gen_kitchen, interior_scene_lighting, camera, capture])
 c.communicate([{"$type": "set_screen_size",
                 "width": 1280,
                 "height": 720}])
+
 c.communicate({"$type": "terminate"})

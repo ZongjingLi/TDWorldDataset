@@ -4,7 +4,7 @@ from tdw.add_ons.third_person_camera import ThirdPersonCamera
 from tdw.add_ons.image_capture import ImageCapture
 from tdw.backend.paths import EXAMPLE_CONTROLLER_OUTPUT_PATH
 
-path = "datasets/ExampleImages"
+path = "datasets/TDWRoom"
 print(f"Images will be saved to: {path}")
 proc_gen_kitchen = ProcGenKitchen()
 proc_gen_kitchen.create()
