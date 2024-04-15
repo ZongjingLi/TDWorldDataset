@@ -14,8 +14,8 @@ import math
 import random
 
 class SceneController(Controller):
-    def __init__(self, split = "train", output_directory = "datasets/TDWRoom"):
-        super().__init__()
+    def __init__(self, split = "train", port = 1027, output_directory = "datasets/TDWRoom"):
+        super().__init__(port = port)
         self.moveables = []
         self.immoveables = []
         self.split = split
@@ -67,11 +67,16 @@ class SceneController(Controller):
                 image = Images(responds[i])
                 avatar_id = image.get_avatar_id()
                 TDWUtils.save_images(image, filename = f"{img_name}", output_directory = self.output_directory)
-
         
+        scene_info = {}
+        return scene_info
     
     def add_obj1_on_obj2(self, obj1, obj2):
         return 
+    
+    def generate_vqa_pairs(self, scene_info):
+        vqa_binds = {}
+        return vqa_binds
 
 
     def generate_scene_distribution(self):

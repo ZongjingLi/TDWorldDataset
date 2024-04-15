@@ -15,7 +15,8 @@ def generate(args):
     scene_num = args.scene_num
     scene_controller = SceneController(args.split, args.output_directory)
     for num in range(scene_num):
-        scene_controller.generate_scene(img_name = f"{split}_{num}")
+        scene_info = scene_controller.generate_scene(img_name = f"{split}_{num}")
+        scene_controller.generate_vqa_pairs(scene_info)
         scene_controller.reset_scene()
         sys.stdout.write(f"\n{num+1} / {scene_num}")
     ys.stdout.write(f"\ngenerate split:{split} num:{scene_num} scenes done.")
