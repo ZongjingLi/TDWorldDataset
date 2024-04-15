@@ -19,8 +19,15 @@ def get_model(name):
 
 
 """spaital relation classifier"""
-def is_left_of(pos1, pos2):
+def is_left_of(pos1, pos2) -> bool:
     return True
 
-def is_right_of(pos1, pos2):
+def is_right_of(pos1, pos2) -> bool:
     return 
+
+def is_infront_of(pos1, pos2) -> bool:
+    return 
+
+def is_behind(pos1, pos2) -> bool:
+    return 
+

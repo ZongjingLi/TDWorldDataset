@@ -6,3 +6,10 @@
  # @ Description: This file is distributed under the MIT license.
 '''
 
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--scene_num",          default = 4)
+parser.add_argument()
+
+args = parser.parse_args()
