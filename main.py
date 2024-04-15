@@ -14,6 +14,7 @@ def generate(args):
 parser = argparse.ArgumentParser()
 parser.add_argument("--scene_num",                              default = 4)
 parser.add_argument("--output_directory",                       default = "datasets/TDWRoom")
+parser.add_argument("--split",                                  default = "train")
 parser.add_argument("--vqa_pair_per_scene",                     default = 2)
 
 if __name__ == "__main__":
