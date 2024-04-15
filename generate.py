@@ -5,7 +5,7 @@ from tdw.add_ons.image_capture import ImageCapture
 from tdw.output_data import OutputData, Images
 from tdw.tdw_utils import TDWUtils
 
-from library import get_material, get_model
+from utils import get_material, get_model
 
 output_directory = "datasets/TDWRoom"
 commands = []

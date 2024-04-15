@@ -8,7 +8,9 @@
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
 from tdw.output_data import OutputData, Images, Transforms, Rigidbodies
-from library import get_material, get_model
+from utils import get_material, get_model
+
+
 
 class SceneController(Controller):
     def __init__(self):
