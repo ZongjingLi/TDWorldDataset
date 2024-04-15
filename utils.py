@@ -19,6 +19,11 @@ def get_model(name):
 
 
 """spaital relation classifier"""
+def transform_coordinates(view_coord, item_coord, ):
+    transformed_item1_coord = [ view_coord[0]*item1_coord[0] - view_coord[0]*item1_coord[1], 
+                                -view_coord[0]*item1_coord[0] - view_coord[1]*item1_coord[1], 
+                               item1_coord[2]]   
+    return transformed_item_coord, 
 
 
 def is_left(coord1, coord2):
