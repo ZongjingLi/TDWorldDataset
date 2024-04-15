@@ -10,22 +10,29 @@ from tdw.tdw_utils import TDWUtils
 from tdw.output_data import OutputData, Images, Transforms, Rigidbodies
 from utils import get_material, get_model
 
-
+import math
+import random
 
 class SceneController(Controller):
-    def __init__(self):
+    def __init__(self, split = "train", output_directory = "datasets/TDWRoom"):
         super().__init__()
         self.moveables = []
         self.immoveables = []
-        self.output_directory = "datasets/TDWRoom"
+        self.split = split
+        self.output_directory = output_directory + f"/{split}"
+
+        """keep track of objects generated in the scene with: id, model, texture, color etc"""
+        self.object_ids = []
     
     def reset_scene(self, option = None):
-        pass
+        for object_id in self.object_ids:
+            self.communicate({"$type": "destroy_object", "id": object_id})
+        self.object_ids = []
 
-    def trial(self,model_name = None, height = None, idx = 0):
+    def generate_scene(self,model_name = None, height = None, img_name = 0):
         if model_name is None: model_name = "iron_box"
-        if height is None: height = 0.8
-        object_id = self.get_unique_id()
+        if height is None: height = 0.8 + random.random() * 0.1
+        
 
         commands = []
         """create an avatar to observe the environment"""
@@ -37,14 +44,13 @@ class SceneController(Controller):
         commands.extend([
             TDWUtils.create_empty_room(5, 5),
         ])
+
+        object_id = self.get_unique_id()
+        self.object_ids.append(object_id)
         commands.extend([
             self.get_add_object(model_name,
                                 object_id = object_id,
                                 position = {"x":0, "y":height, "z":0}),
-            self.get_add_object(model_name = get_model("sink_cabinet_unit_wood_beech_honey_chrome_composite").name,
-                                
-                                position = {'x':0.0, 'y':-0., 'z':+0.0},
-                                object_id = self.get_unique_id()),
         ])
         
         
@@ -60,9 +66,9 @@ class SceneController(Controller):
             if r_id == "imag":
                 image = Images(responds[i])
                 avatar_id = image.get_avatar_id()
-                TDWUtils.save_images(image, filename = f"scourge_{idx}", output_directory = self.output_directory)
+                TDWUtils.save_images(image, filename = f"{img_name}", output_directory = self.output_directory)
 
-        #self.communicate({"$type": "destroy_object", "id": object_id})
+        
     
     def add_obj1_on_obj2(self, obj1, obj2):
         return 
@@ -73,5 +79,5 @@ class SceneController(Controller):
 
 scene_control = SceneController()
 
-outputs = scene_control.trial()
+outputs = scene_control.generate_scene()
 
