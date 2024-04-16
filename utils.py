@@ -21,29 +21,39 @@ def get_model(name):
 """spaital relation classifier"""
 def transform_coordinates(item1_coord, view_coord, view_angle = None):
     #TODO: add view angle to the parameters
-    transformed_item1_coord = [ view_coord[0]*item1_coord[0] - view_coord[0]*item1_coord[1], 
-                                -view_coord[0]*item1_coord[0] - view_coord[1]*item1_coord[1], 
-                               item1_coord[2]]   
+#第二项代表高度，无需变换，通过变化第一项和第三项使得摄像头从（1，0，0）看向（0，0，0）
+ #假如摄像头在（a,h,c），一个在（a,0,c）坐标的物品显然在原点的正"前"方
+ #（a，0，c）————>(1,0,0)
+ #(-c,0,a)在正右方，应当变为（0，0，1）
+ #所以变换后的坐标应当为（ax/(aa+cc)+cy/(aa+cc),0，-cx/(aa+cc)+ay/(aa+cc)）
+    #view_coord[0]*item1_coord[0] - view_coord[0]*item1_coord[1]
+    transformed_item1_coord = [ view_coord[0]*item1_coord[0]/(view_coord[0]^2+view_coord[2]^2)+view_coord[2]*item1_coord[2]/(view_coord[0]^2+view_coord[2]^2), 
+                                item1_coord[1], 
+                               -view_coord[2]*item1_coord[0]/(view_coord[0]^2+view_coord[2]^2)+view_coord[0]*item1_coord[2]/(view_coord[0]^2+view_coord[2]^2)]   
     return transformed_item1_coord
 
 
+
+
+#当camera从（1，0，0）看向（0，0，0）时
+#（0，0，-1）是左
 def is_left(coord1, coord2):
-    return coord1[0] < coord2[0]
+    return coord1[2] < coord2[2]
 
 def is_right(coord1, coord2):
+    return coord1[2] > coord2[2]
+#(1,0,0)是前
+def is_front(coord1, coord2):
     return coord1[0] > coord2[0]
 
-def is_front(coord1, coord2):
-    return coord1[1] < coord2[1]
-
 def is_back(coord1, coord2):
+    return coord1[0] < coord2[0]
+#（0，1，0）是上
+def is_above(coord1, coord2):
     return coord1[1] > coord2[1]
 
-def is_above(coord1, coord2):
-    return coord1[2] > coord2[2]
-
 def is_below(coord1, coord2):
-    return coord1[2] < coord2[2]
+    return coord1[1] < coord2[1]
 
 
 
