@@ -27,10 +27,9 @@ def transform_coordinates(item1_coord, view_coord, view_angle = None):
  #(-c,0,a)在正右方，应当变为（0，0，1）
  #所以变换后的坐标应当为（ax/(aa+cc)+cy/(aa+cc),0，-cx/(aa+cc)+ay/(aa+cc)）
     #view_coord[0]*item1_coord[0] - view_coord[0]*item1_coord[1]
-    transformed_item1_coord = [ view_coord[0]*item1_coord[0]/(view_coord[0]^2+view_coord[2]^2)+view_coord[2]*item1_coord[2]/(view_coord[0]^2+view_coord[2]^2), 
+    transformed_item1_coord = [ view_coord[0]*item1_coord[0]/(view_coord[0]*view_coord[0]+view_coord[2]*item1_coord[2])+view_coord[2]*item1_coord[2]/(view_coord[0]*view_coord[2]+view_coord[2]*item1_coord[2]), 
                                 item1_coord[1], 
-                               -view_coord[2]*item1_coord[0]/(view_coord[0]^2+view_coord[2]^2)+view_coord[0]*item1_coord[2]/(view_coord[0]^2+view_coord[2]^2)]   
-    return transformed_item1_coord
+                               -view_coord[2]*item1_coord[0]/(view_coord[0]*view_coord[0]+view_coord[2]*item1_coord[2])+view_coord[0]*item1_coord[2]/(view_coord[0]*view_coord[0]+view_coord[2]*item1_coord[2])]       return transformed_item1_coord
 
 
 
