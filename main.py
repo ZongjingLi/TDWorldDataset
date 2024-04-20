@@ -22,9 +22,13 @@ def generate(args):
     scene_controller.communicate({"$type": "terminate"})
     sys.stdout.write(f"\ngenerate split:{split} num:{scene_num} scenes done.")
 
+local = True
+dataset_dir = "/Users/melkor/Documents/datasets" if local else "datasets"
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--scene_num",                              default = 15)
-parser.add_argument("--output_directory",                       default = "datasets/TDWRoom")
+parser.add_argument("--output_directory",                       default = f"{dataset_dir}/TDWRoom")
 parser.add_argument("--split",                                  default = "train")
 parser.add_argument("--vqa_pair_per_scene",                     default = 2)
 

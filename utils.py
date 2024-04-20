@@ -29,7 +29,8 @@ def transform_coordinates(item1_coord, view_coord, view_angle = None):
     #view_coord[0]*item1_coord[0] - view_coord[0]*item1_coord[1]
     transformed_item1_coord = [ view_coord[0]*item1_coord[0]/(view_coord[0]*view_coord[0]+view_coord[2]*item1_coord[2])+view_coord[2]*item1_coord[2]/(view_coord[0]*view_coord[2]+view_coord[2]*item1_coord[2]), 
                                 item1_coord[1], 
-                               -view_coord[2]*item1_coord[0]/(view_coord[0]*view_coord[0]+view_coord[2]*item1_coord[2])+view_coord[0]*item1_coord[2]/(view_coord[0]*view_coord[0]+view_coord[2]*item1_coord[2])]       return transformed_item1_coord
+                               -view_coord[2]*item1_coord[0]/(view_coord[0]*view_coord[0]+view_coord[2]*item1_coord[2])+view_coord[0]*item1_coord[2]/(view_coord[0]*view_coord[0]+view_coord[2]*item1_coord[2])]       
+    return transformed_item1_coord
 
 
 

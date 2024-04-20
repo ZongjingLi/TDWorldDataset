@@ -7,7 +7,7 @@
 '''
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
-from tdw.output_data import OutputData, Images, Transforms, Rigidbodies, Bounds
+from tdw.output_data import OutputData, Images, Transforms, Rigidbodies, Bounds, SegmentationColors, IdPassSegmentationColors
 from tdw.add_ons.object_manager import ObjectManager
 from utils import get_material, get_model
 
@@ -16,6 +16,9 @@ import random
 import numpy as np
 
 from typing import List
+
+import torch
+import matplotlib.pyplot as plt
 
 class SceneController(Controller):
     def __init__(self, split = "train", port = 1027, output_directory = "datasets/TDWRoom"):
@@ -29,6 +32,8 @@ class SceneController(Controller):
         self.object_ids = []
         self.om= ObjectManager(transforms=False, bounds=True, rigidbodies=True)
         self.rng: np.random.RandomState = np.random.RandomState(32)
+
+        self.W, self.H = 512, 512
 
     def reset_scene(self, option = None):
         for object_id in self.object_ids:
@@ -80,8 +85,33 @@ class SceneController(Controller):
                            "g": float(self.rng.uniform(0.7, 1)),
                            "b": float(self.rng.uniform(0.7, 1)),
                            "a": 1.0}}]
+    def add_object(self, model, position = {"x": -0.1, "y": 0, "z": -0.8}):
+        object_id = self.get_unique_id()
+        material_record = get_material("parquet_long_horizontal_clean")
+        model_record = get_model(model)
+        self.communicate([
+            {"$type": "add_object",
+                "name": model_record.name,
+                "url": model_record.get_url(),
+                "scale_factor": model_record.scale_factor,
+                "position": position,
+                "rotation": {"x": 0, "y": 0, "z": 0},
+                "category": model_record.wcategory,
+                "id": object_id},
+        ])
+        """
+        self.communicate([
+            {"$type": "set_visual_material",
+                "material_index": 0,
+                "material_name": material_record.name,
+                "object_name": "Object017",
+                "id": object_id}
+        ])
+        """
+        self.object_ids.append(object_id)
 
     def generate_scene(self,model_name = None, height = None, img_name = 0):
+        W, H = self.W, self.H
         if model_name is None: model_name = "iron_box"
         if height is None: height = 0.8 + random.random() * 0.3
         
@@ -102,53 +132,79 @@ class SceneController(Controller):
         self.communicate(self.set_walls())
 
         """add some objects in the scene"""
-        object_id = self.get_unique_id()
-        self.object_ids.append(object_id)
-        commands.extend([
-            self.get_add_object(model_name,
-                                object_id = object_id,
-                                position = {"x":0, "y":height, "z":0}),
-        ])
+
+        self.add_object(model_name, position = {"x":0, "y":height, "z":0})
 
         self.add_obj1_on_obj2("small_table_green_marble", "jug01")
 
-
-        object_id = self.get_unique_id()
-        material_record = get_material("parquet_long_horizontal_clean")
-        model_record = get_model("white_lounger_chair")
-        self.communicate([
-            {"$type": "add_object",
-                "name": model_record.name,
-                "url": model_record.get_url(),
-                "scale_factor": model_record.scale_factor,
-                "position": {"x": -0.1, "y": 0, "z": -0.8},
-                "rotation": {"x": 0, "y": 0, "z": 0},
-                "category": model_record.wcategory,
-                "id": object_id},
-        ])
-        self.communicate([
-            {"$type": "set_visual_material",
-                "material_index": 0,
-                "material_name": material_record.name,
-                "object_name": "Object017",
-                "id": object_id}
-        ])
-        self.object_ids.append(object_id)
+        self.add_object("white_lounger_chair")
     
         
         commands.extend([
-            {"$type": "set_screen_size", "width": 512, "height": 512},
-            {"$type": "set_pass_masks", "pass_masks": ["_img", "_id"], "avatar_id": "a"},
+            {"$type": "set_screen_size", "width":W, "height": H},
+            {"$type": "set_pass_masks", "pass_masks": ["_img", "_id", "_albedo"], "avatar_id": "a"},
             {"$type": "send_images", "frequency": "always", "ids": ["a"]}])
         
+        """give out the color and id of the objects in the image"""
+        commands.extend([
+                 {"$type": "send_segmentation_colors",
+                  "frequency": "once"},
+                 {"$type": "send_id_pass_segmentation_colors",
+                  "frequency": "always"}])
+
         responds = self.communicate(commands)
+        segmentation_colors_per_object = dict()
+        segmentation_colors_in_image = list()
+        
+        binary_mask = torch.zeros([W, H])
+
         for i in range(len(responds)):
             r_id = OutputData.get_data_type_id(responds[i])
             if r_id == "imag":
                 image = Images(responds[i])
                 avatar_id = image.get_avatar_id()
                 TDWUtils.save_images(image, filename = f"{img_name}", output_directory = self.output_directory+ f"/img")
+
+        image = (torch.tensor(plt.imread(self.output_directory + f"/img/id_{img_name}.png")) * 255).int()
         
+        for i in range(len(responds)):
+            r_id = OutputData.get_data_type_id(responds[i])
+            if r_id == "segm":
+                segm = SegmentationColors(responds[i])
+                for j in range(segm.get_num()):
+                    object_id = segm.get_object_id(j)
+                    object_name = self.object_ids.index(object_id)
+                    segmentation_color = segm.get_object_color(j)
+                    segmentation_colors_per_object[object_id] = segmentation_color
+                    #print(self.object_ids.index(object_id), segmentation_color)
+                    #print((torch.tensor(image[:,:]) == segmentation_color).shape)
+                    locs = torch.max(image == torch.tensor(segmentation_color), dim = - 1, keepdim = False).values
+                    #print(locs.shape)
+                    #print(binary_mask.shape)
+                    binary_mask[locs] = self.object_ids.index(object_id) + 1
+                    """
+                    for i in range(self.W):
+                        for j in range(self.H):
+                            #print(image[i,j] ,torch.tensor(segmentation_color),list(image[i,j]) == list(torch.tensor(segmentation_color).int()))
+                            if list(image[i,j]) == list(torch.tensor(segmentation_color).int()):
+                                binary_mask[i,j] = self.object_ids.index(object_id)
+                    """
+            #np.save(binary_mask,)
+        np.save(self.output_directory+ f"/img/mask_{img_name}" ,binary_mask)
+    
+        """
+            elif r_id == "ipsc":
+                ipsc = IdPassSegmentationColors(responds[i])
+                for j in range(ipsc.get_num_segmentation_colors()):
+                    print(ipsc.get_segmentation_color(j))
+                    segmentation_colors_in_image.append(ipsc.get_segmentation_color(j))
+        """
+        for object_id in segmentation_colors_per_object:
+            for i in range(len(segmentation_colors_in_image)):
+                if any((segmentation_colors_in_image[i] == j).all() for j in segmentation_colors_per_object.values()):
+                    #print(object_id, segmentation_color[i])
+                    break
+
         scene_info = {}
         return scene_info
     
