@@ -128,8 +128,24 @@ class SceneController(Controller):
         commands.extend([
             TDWUtils.create_empty_room(12, 12),
         ])
+        """
+
+        scene_name = "box_room_2018"
+        scene_name = "tdw_room"
+        scene_name = "suburb_scene_2018"
+        scene_name = "iceland_beach"
+        scene_name = "lava_field"
+        scene_name = "mm_craftroom_1a"
+        scene_name = "downtown_alleys"
+        scene_name = "mm_craftroom_4a"
+        scene_name =  "tdw_room"
+        
+        """
+        
         self.communicate(self.set_floor())
         self.communicate(self.set_walls())
+
+        self.communicate(self.get_add_scene(scene_name=scene_name))
 
         """add some objects in the scene"""
 
@@ -245,3 +261,14 @@ class SceneController(Controller):
     def generate_scene_distribution(self):
         return
 
+if __name__ == "__main__":
+    import csv
+    import pandas as pd
+
+    with open("metadata/object_library.csv", newline= '') as csvfile:
+        reader = csv.reader(csvfile, delimiter = ' ', quotechar = '|')
+        for row in reader:
+            print(', '.join(row))
+
+    df = pd.read_csv("metadata/object_library.csv")
+    print(df.head(5))

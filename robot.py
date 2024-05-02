@@ -9,11 +9,28 @@
 from tdw.controller import Controller
 from tdw.tdw_utils import TDWUtils
 from tdw.add_ons.robot import Robot
+from tdw.librarian import SceneLibrarian
+import numpy as np
 
 c = Controller()
 robot_id = c.get_unique_id()
-robot = Robot(name="ur5", robot_id=robot_id)
+robot = Robot(name="ur5", 
+              robot_id=robot_id,
+              position={"x": 0., "y": 0.0, "z": -0.4},
+              rotation={"x": 0, "y": 0, "z": 0},
+              )
 c.add_ons.append(robot)
-commands = [TDWUtils.create_empty_room(12, 12)]
-commands.extend(TDWUtils.create_avatar(avatar_id="avatar"))
+
+librarian = SceneLibrarian()
+for record in librarian.records:print(record.name)
+
+c.communicate(c.get_add_scene(scene_name="tdw_room"))
+
+commands = []
+theta = np.random.random() * 2 * np.pi
+scale = np.random.random() * 0.2 + 1.8
+commands.extend(TDWUtils.create_avatar(position={"x": np.cos(theta) * scale, "y": 1.32, "z": np.sin(theta) * scale},
+                                       avatar_id="a",
+                                       look_at={"x": 0.0, "y": 0.4, "z": 0.0}))
 c.communicate(commands)
+
