@@ -21,7 +21,7 @@ import torch
 import matplotlib.pyplot as plt
 
 class SceneController(Controller):
-    def __init__(self, split = "train", port = 1027, output_directory = "datasets/TDWRoom"):
+    def __init__(self, split = "train", port = 1928, output_directory = "datasets/TDWRoom"):
         super().__init__(port = port)
         self.moveables = []
         self.immoveables = []
@@ -125,9 +125,9 @@ class SceneController(Controller):
                                        look_at={"x": 0.0, "y": 0.4, "z": 0.0}))
         
         """create the room and setup the floor, walls etc to make it look real haha"""
-        commands.extend([
-            TDWUtils.create_empty_room(12, 12),
-        ])
+        #commands.extend([
+        #    TDWUtils.create_empty_room(12, 12),
+        #])
         """
 
         scene_name = "box_room_2018"
@@ -137,13 +137,12 @@ class SceneController(Controller):
         scene_name = "lava_field"
         scene_name = "mm_craftroom_1a"
         scene_name = "downtown_alleys"
-        scene_name = "mm_craftroom_4a"
-        scene_name =  "tdw_room"
-        
+        scene_name = "mm_craftroom_4a" 
         """
         
-        self.communicate(self.set_floor())
-        self.communicate(self.set_walls())
+        #self.communicate(self.set_floor())
+        #self.communicate(self.set_walls())
+        scene_name =  "mm_craftroom_4a" 
 
         self.communicate(self.get_add_scene(scene_name=scene_name))
 
