@@ -142,7 +142,10 @@ class SceneController(Controller):
         
         #self.communicate(self.set_floor())
         #self.communicate(self.set_walls())
-        scene_name =  "mm_craftroom_4a" 
+        scene_name = np.random.choice( [
+            #"tdw_room",
+            "mm_craftroom_4a",
+            ] )
 
         self.communicate(self.get_add_scene(scene_name=scene_name))
 
