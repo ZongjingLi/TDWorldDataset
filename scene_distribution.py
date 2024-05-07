@@ -201,7 +201,7 @@ class SceneController(Controller):
                 segm = SegmentationColors(responds[i])
                 for j in range(segm.get_num()):
                     object_id = segm.get_object_id(j)
-                    object_name = self.object_ids.index(object_id)
+                    #object_name = self.object_ids.index(object_id)
                     segmentation_color = segm.get_object_color(j)
                     segmentation_colors_per_object[object_id] = segmentation_color
                     #print(self.object_ids.index(object_id), segmentation_color)
