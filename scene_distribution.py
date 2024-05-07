@@ -201,15 +201,16 @@ class SceneController(Controller):
                 segm = SegmentationColors(responds[i])
                 for j in range(segm.get_num()):
                     object_id = segm.get_object_id(j)
-                    #object_name = self.object_ids.index(object_id)
-                    segmentation_color = segm.get_object_color(j)
-                    segmentation_colors_per_object[object_id] = segmentation_color
-                    #print(self.object_ids.index(object_id), segmentation_color)
-                    #print((torch.tensor(image[:,:]) == segmentation_color).shape)
-                    locs = torch.max(image == torch.tensor(segmentation_color), dim = - 1, keepdim = False).values
-                    #print(locs.shape)
-                    #print(binary_mask.shape)
-                    binary_mask[locs] = self.object_ids.index(object_id) + 1
+                    if object_id in self.object_ids:
+                        #object_name = self.object_ids.index(object_id)
+                        segmentation_color = segm.get_object_color(j)
+                        segmentation_colors_per_object[object_id] = segmentation_color
+                        #print(self.object_ids.index(object_id), segmentation_color)
+                        #print((torch.tensor(image[:,:]) == segmentation_color).shape)
+                        locs = torch.max(image == torch.tensor(segmentation_color), dim = - 1, keepdim = False).values
+                        #print(locs.shape)
+                        #print(binary_mask.shape)
+                        binary_mask[locs] = self.object_ids.index(object_id) + 1
                     """
                     for i in range(self.W):
                         for j in range(self.H):
