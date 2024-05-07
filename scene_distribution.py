@@ -20,6 +20,13 @@ from typing import List
 import torch
 import matplotlib.pyplot as plt
 
+indoor_options = [
+    {"object_room": ["box_room_2018"]}, 
+    {"kitchen": ["mm_kitchen_1a", "mm_kitchen_1b", "mm_kitchen_2a", "mm_kitchen_2b"]},
+    {"craftroom": ["mm_craftroom_4a",  "mm_craftroom_1a" ,"monkey_physics_room"]}, 
+    {"diningroom": ["mm_craftroom_4a",  "mm_craftroom_1a" ]}
+]
+
 class SceneController(Controller):
     def __init__(self, split = "train", port = 1928, output_directory = "datasets/TDWRoom"):
         super().__init__(port = port)
@@ -109,8 +116,17 @@ class SceneController(Controller):
         ])
         """
         self.object_ids.append(object_id)
+    
+    def scene(self):
+        return
+    
+    def generate_scene_tdworld():
+        """
+        generate a scene with room tdw_room, randomly choose objects that are moveable and put it on the floor.
+        """
+        pass
 
-    def generate_scene(self,model_name = None, height = None, img_name = 0):
+    def generate_scene(self,model_name = None, height = None, img_name = 0, scene_name = None):
         W, H = self.W, self.H
         if model_name is None: model_name = "iron_box"
         if height is None: height = 0.8 + random.random() * 0.3
@@ -142,11 +158,8 @@ class SceneController(Controller):
         
         #self.communicate(self.set_floor())
         #self.communicate(self.set_walls())
-        scene_name = np.random.choice( [
-            #"tdw_room",
-            "mm_craftroom_4a",
-            ] )
 
+        if scene_name is None: scene_name = "mm_craftroom_4a"
         self.communicate(self.get_add_scene(scene_name=scene_name))
 
         """add some objects in the scene"""
