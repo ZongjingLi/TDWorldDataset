@@ -19,6 +19,7 @@ from typing import List
 
 import torch
 import matplotlib.pyplot as plt
+import pandas as pd
 
 indoor_options = [
     {"object_room": ["box_room_2018"]}, 
@@ -120,11 +121,124 @@ class SceneController(Controller):
     def scene(self):
         return
     
-    def generate_scene_tdworld():
+    def generate_scene_moveable_tdworld(self,model_name = None, height = None, img_name = 0, scene_name = None, numberw=3):
         """
         generate a scene with room tdw_room, randomly choose objects that are moveable and put it on the floor.
         """
-        pass
+        W, H = self.W, self.H
+        if model_name is None: model_name = "iron_box"
+        if height is None: height = 0.1 + random.random() * 0.3
+        df = pd.read_csv('D:\ObjectDict.csv')
+
+# 选择第二项为"y"的行，并提取第一项作为数组
+        filtered_array = df.loc[df['movable'] == 'y', 'object'].values
+        n = numberw  # 选择要打印的元素数量
+        random_elements = random.sample(list(filtered_array), n)
+        print("_________________________________________________________")
+        print(random_elements)
+# 分别打印随机选择的元素
+        #for element in random_elements:
+            #print(element)
+# 打印数组
+        #print(filtered_array) 
+
+        commands = []
+        """create an avatar to observe the environment"""
+        theta = np.random.random() * 2 * np.pi
+        scale = np.random.random() * 0.4 + 4
+        commands.extend(TDWUtils.create_avatar(position={"x": np.cos(theta) * scale, "y": 2.6, "z": np.sin(theta) * scale},
+                                       avatar_id="a",
+                                       look_at={"x": 0.0, "y": 0.4, "z": 0.0}))
+        
+        """create the room and setup the floor, walls etc to make it look real haha"""
+        self.communicate(TDWUtils.create_empty_room(12,12))
+        self.communicate(self.set_floor())
+        self.communicate(self.set_walls())
+
+        #if scene_name is None: scene_name = "mm_craftroom_4a"
+        #self.communicate(self.get_add_scene(scene_name=scene_name))
+
+        """add some objects in the scene"""
+        for element in random_elements:
+
+            self.add_object(element, position = {"x":random.uniform(-1, 1), "y":height, "z":random.uniform(-1, 1)})
+
+        #self.add_obj1_on_obj2("small_table_green_marble", "jug01")
+
+        #self.add_object("white_lounger_chair")
+    
+        
+        commands.extend([
+            {"$type": "set_screen_size", "width":W, "height": H},
+            {"$type": "set_pass_masks", "pass_masks": ["_img", "_id", "_albedo"], "avatar_id": "a"},
+            {"$type": "send_images", "frequency": "always", "ids": ["a"]}])
+        
+        """give out the color and id of the objects in the image"""
+        commands.extend([
+                 {"$type": "send_segmentation_colors",
+                  "frequency": "once"},
+                 {"$type": "send_id_pass_segmentation_colors",
+                  "frequency": "always"}])
+
+        responds = self.communicate(commands)
+        segmentation_colors_per_object = dict()
+        segmentation_colors_in_image = list()
+        
+        binary_mask = torch.zeros([W, H])
+
+        for i in range(len(responds)):
+            r_id = OutputData.get_data_type_id(responds[i])
+            if r_id == "imag":
+                image = Images(responds[i])
+                avatar_id = image.get_avatar_id()
+                TDWUtils.save_images(image, filename = f"{img_name}", output_directory = self.output_directory+ f"/img")
+
+        image = (torch.tensor(plt.imread(self.output_directory + f"/img/id_{img_name}.png")) * 255).int()
+        
+        for i in range(len(responds)):
+            r_id = OutputData.get_data_type_id(responds[i])
+            if r_id == "segm":
+                segm = SegmentationColors(responds[i])
+                for j in range(segm.get_num()):
+                    object_id = segm.get_object_id(j)
+                    object_name = self.object_ids.index(object_id)
+                    segmentation_color = segm.get_object_color(j)
+                    segmentation_colors_per_object[object_id] = segmentation_color
+                    #print(self.object_ids.index(object_id), segmentation_color)
+                    #print((torch.tensor(image[:,:]) == segmentation_color).shape)
+                    locs = torch.max(image == torch.tensor(segmentation_color), dim = - 1, keepdim = False).values
+                    #print(locs.shape)
+                    #print(binary_mask.shape)
+                    binary_mask[locs] = self.object_ids.index(object_id) + 1
+                    """
+                    for i in range(self.W):
+                        for j in range(self.H):
+                            #print(image[i,j] ,torch.tensor(segmentation_color),list(image[i,j]) == list(torch.tensor(segmentation_color).int()))
+                            if list(image[i,j]) == list(torch.tensor(segmentation_color).int()):
+                                binary_mask[i,j] = self.object_ids.index(object_id)
+                    """
+            #np.save(binary_mask,)
+        np.save(self.output_directory+ f"/img/mask_{img_name}" ,binary_mask)
+    
+        """
+            elif r_id == "ipsc":
+                ipsc = IdPassSegmentationColors(responds[i])
+                for j in range(ipsc.get_num_segmentation_colors()):
+                    print(ipsc.get_segmentation_color(j))
+                    segmentation_colors_in_image.append(ipsc.get_segmentation_color(j))
+        """
+        for object_id in segmentation_colors_per_object:
+            for i in range(len(segmentation_colors_in_image)):
+                if any((segmentation_colors_in_image[i] == j).all() for j in segmentation_colors_per_object.values()):
+                    #print(object_id, segmentation_color[i])
+                    break
+
+        scene_info = {}
+        return scene_info
+
+
+
+
 
     def generate_scene(self,model_name = None, height = None, img_name = 0, scene_name = None):
         W, H = self.W, self.H
@@ -141,21 +255,7 @@ class SceneController(Controller):
                                        look_at={"x": 0.0, "y": 0.4, "z": 0.0}))
         
         """create the room and setup the floor, walls etc to make it look real haha"""
-        #commands.extend([
-        #    TDWUtils.create_empty_room(12, 12),
-        #])
-        """
 
-        scene_name = "box_room_2018"
-        scene_name = "tdw_room"
-        scene_name = "suburb_scene_2018"
-        scene_name = "iceland_beach"
-        scene_name = "lava_field"
-        scene_name = "mm_craftroom_1a"
-        scene_name = "downtown_alleys"
-        scene_name = "mm_craftroom_4a" 
-        """
-        
         #self.communicate(self.set_floor())
         #self.communicate(self.set_walls())
 
