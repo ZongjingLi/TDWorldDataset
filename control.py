@@ -31,8 +31,8 @@ camera = ThirdPersonCamera(position={"x": 1.0 , "y": 2.0, "z":3.2},
 
 mouse = Mouse(avatar_id="a")
 robot = Robot(name="niryo_one",
-              position={"x": 1.6, "y": 1, "z": 2.1},
-              rotation={"x": 0, "y": 0, "z": 0},
+              position={"x": 1.6, "y": 1, "z": 2.3},
+              rotation={"x": 0, "y": 180, "z": 0},
               robot_id=c.get_unique_id())
 
 c.add_ons.extend([camera, mouse, robot, keyboard])
@@ -43,8 +43,9 @@ c.add_ons.extend([camera, mouse, robot, keyboard])
 c.communicate(c.get_add_scene(scene_name="mm_kitchen_1b"))
 add_object(c, "sink_cabinet_unit_wood_oak_white_chrome_composite", position = {"x":1, "y":0, "z":2})
 add_object(c, "gas_stove", position = {"x":2 ,"y":0, "z":-1})
-
-
+add_object(c, "b04_bowl_smooth", position = {"x":1.4 ,"y":1.2, "z":2.1})
+add_object(c, "glass_table", position = {"x":1 ,"y":0, "z":0})
+add_object(c, "b04_bowl_smooth", position = {"x":1 ,"y":2, "z":0})
 
 for joint_id in robot.static.joints:
     joint_name = robot.static.joints[joint_id].name
@@ -74,13 +75,31 @@ off_y = 0
 
 def demo():
     print("wow")
+    global off_x, off_y
     #robot.static.joint_ids_by_name["hand_link"]
+    off_x = off_x +10
+    robot.set_joint_targets(targets={robot.static.joint_ids_by_name["shoulder_link"]: 0 + off_x,
+                                 #robot.static.joint_ids_by_name["hand_link"]: 160 + off_y
+                                 })
+def demo2():
+    print("wow")
+    global off_x, off_y
+    #robot.static.joint_ids_by_name["hand_link"]
+    off_x = off_x -10
+    #off_y = off_y - 10
+    print(off_x)
+    robot.set_joint_targets(targets={robot.static.joint_ids_by_name["shoulder_link"]: 0 + off_x,
+                                 #robot.static.joint_ids_by_name["hand_link"]: 0 + off_y
+                                 })
 
-    robot.set_joint_targets(targets={robot.static.joint_ids_by_name["shoulder_link"]: 130 + off_x,
-                                 robot.static.joint_ids_by_name["hand_link"]: 160 + off_y})
+def turnleft():
+    print("tryleft")
+
+
 
 keyboard.listen(key="Escape", commands=[{"$type": "terminate"}])
 keyboard.listen(key="W", function = demo)
+keyboard.listen(key="S", function = demo2)
 #c.communicate({"$type": "terminate"})
 
 done = False
