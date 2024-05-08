@@ -398,6 +398,3 @@ FodyWeavers.xsd
 *.sln.iml
 *.png
 *.jpg
-datasets/TDWRoom/train/img/mask_train_0.npy
-*.npy
-*.npy

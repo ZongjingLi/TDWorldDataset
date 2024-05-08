@@ -233,8 +233,8 @@ class SceneController(Controller):
         """
         W, H = self.W, self.H
         if model_name is None: model_name = "iron_box"
-        if height is None: height = 0.1 + random.random() * 0.1
-        df = pd.read_csv('D:\ObjectDict.csv')
+        if height is None: height = 0.1 + random.random() * 0.3
+        df = pd.read_csv('metadata/ObjectDict.csv')
 
 # 选择第二项为"y"的行，并提取第一项作为数组
         filtered_array = df.loc[df['movable'] == 'y', 'object'].values
