@@ -17,12 +17,17 @@ def generate(args):
     scene_controller = SceneController(split = args.split, output_directory = args.output_directory)
     room_split = 0
 
+    scene_info = scene_controller.generate_scene_kitchen_tdworld(img_name = "ww")
+    scene_controller.reset_scene()
+    scene_controller.communicate({"$type": "terminate"})
+
+    """
     for num in range(scene_num):
         scene_info = scene_controller.generate_scene_moveable_tdworld(img_name = f"{split}_{num}")
         scene_controller.reset_scene()
     scene_controller.communicate({"$type": "terminate"})
    
-
+"""
 local = False
 dataset_dir = "/Users/melkor/Documents/datasets" if local else "datasets"
 

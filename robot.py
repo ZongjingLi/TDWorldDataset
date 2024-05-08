@@ -20,11 +20,13 @@ robot = Robot(name="ur5",
               rotation={"x": 0, "y": 0, "z": 0},
               )
 c.add_ons.append(robot)
+print(robot.static)
+
 
 librarian = SceneLibrarian()
 for record in librarian.records:print(record.name)
 
-c.communicate(c.get_add_scene(scene_name="tdw_room"))
+#c.communicate(c.get_add_scene(scene_name="tdw_room"))
 
 commands = []
 theta = np.random.random() * 2 * np.pi
