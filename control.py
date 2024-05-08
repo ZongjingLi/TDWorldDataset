@@ -92,6 +92,21 @@ def demo2():
                                  #robot.static.joint_ids_by_name["hand_link"]: 0 + off_y
                                  })
 
+def hit1():
+    print("hit1")
+    robot.add_joint_forces(forces={robot.static.joint_ids_by_name["shoulder_link"]: 500,})
+
+
+def hit2():
+    print("hit2")
+    robot.add_joint_forces(forces={robot.static.joint_ids_by_name["shoulder_link"]: -500,})
+
+
+
+
+                               
+
+
 def turnleft():
     print("tryleft")
 
@@ -100,6 +115,8 @@ def turnleft():
 keyboard.listen(key="Escape", commands=[{"$type": "terminate"}])
 keyboard.listen(key="W", function = demo)
 keyboard.listen(key="S", function = demo2)
+keyboard.listen(key="A", function = hit1)
+keyboard.listen(key="D", function = hit2)
 #c.communicate({"$type": "terminate"})
 
 done = False
