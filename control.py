@@ -6,6 +6,8 @@ from tdw.add_ons.keyboard import Keyboard
 from tdw.add_ons.third_person_camera import ThirdPersonCamera
 import numpy as np
 from utils import get_material, get_model
+from tdw.backend.paths import EXAMPLE_CONTROLLER_OUTPUT_PATH
+from tdw.add_ons.image_capture import ImageCapture
 
 def add_object(c, model, position = {"x": -0.1, "y": 0, "z": -0.8}, rotation = {"x": 0, "y": 0, "z": 0}):
         object_id = c.get_unique_id()
@@ -25,28 +27,36 @@ def add_object(c, model, position = {"x": -0.1, "y": 0, "z": -0.8}, rotation = {
 
 c = Controller()
 keyboard = Keyboard()
-camera = ThirdPersonCamera(position={"x": 0.1 , "y": 2.2, "z":-1.4},
-                           look_at={"x": 0, "y": 1.3, "z": -2.2},
+camera = ThirdPersonCamera(position={"x": -0.5 , "y": 1.9, "z":-1.7},
+                           look_at={"x": -0.3, "y": 1.3, "z": -2.2},
                            avatar_id="a")
+path = EXAMPLE_CONTROLLER_OUTPUT_PATH.joinpath("robot_add_on")
+print(f"Images will be saved to: {path}")
+capture = ImageCapture(avatar_ids=["a"], path=path)
+
+
 
 mouse = Mouse(avatar_id="a")
 robot = Robot(name="niryo_one",
-              position={"x": 0.4, "y": 1, "z": -2.2},
+              position={"x": 0.4, "y": 1, "z": -2.5},
               rotation={"x": 0, "y": 180, "z": -1},
               robot_id=c.get_unique_id())
 
-c.add_ons.extend([camera, mouse, robot, keyboard])
+c.add_ons.extend([camera, mouse, robot, keyboard, capture])
 
 
 #c.communicate(TDWUtils.create_empty_room(12, 12))
 
 c.communicate(c.get_add_scene(scene_name="mm_kitchen_1b"))
-add_object(c, "sink_cabinet_unit_wood_oak_white_chrome_composite", position = {"x":-0.2, "y":0, "z":-2.6})
+add_object(c, "sink_cabinet_unit_wood_oak_white_chrome_composite", position = {"x":-0.2, "y":0, "z":-2.7})
 add_object(c, "gas_stove", position = {"x":1.2 ,"y":0, "z":-2.8},rotation={"x": 0, "y": 90, "z": 0})
-add_object(c, "b04_bowl_smooth", position = {"x":0.2 ,"y":1.2, "z":-2.5})
+add_object(c, "b04_bowl_smooth", position = {"x":0.2 ,"y":1.2, "z":-2.7})
 add_object(c, "b03_morphy_2013__vray", position = {"x":-0.6 ,"y":1.2, "z":-2.5})
-add_object(c, "plate06", position = {"x":-0.6 ,"y":1.2, "z":-2.6})
-
+add_object(c, "plate06", position = {"x":-0.6 ,"y":1.2, "z":-2.8})
+add_object(c, "b04_bottle_2_max", position = {"x":-0 ,"y":1.2, "z":-3})
+add_object(c, "coffeemug", position = {"x":0.2 ,"y":1.2, "z":-3})
+add_object(c, "measuring_pan", position = {"x":-0.2 ,"y":1.2, "z":-2.7})
+add_object(c, "orange", position = {"x":0.3 ,"y":1.2, "z":-2.8})
 #add_object(c, "glass_table", position = {"x":0 ,"y":0, "z":-1.8})
 #add_object(c, "b04_bowl_smooth", position = {"x":1 ,"y":2, "z":0})
 
