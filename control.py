@@ -7,7 +7,7 @@ from tdw.add_ons.third_person_camera import ThirdPersonCamera
 import numpy as np
 from utils import get_material, get_model
 
-def add_object(c, model, position = {"x": -0.1, "y": 0, "z": -0.8}):
+def add_object(c, model, position = {"x": -0.1, "y": 0, "z": -0.8}, rotation = {"x": 0, "y": 0, "z": 0}):
         object_id = c.get_unique_id()
         material_record = get_material("parquet_long_horizontal_clean")
         model_record = get_model(model)
@@ -18,21 +18,21 @@ def add_object(c, model, position = {"x": -0.1, "y": 0, "z": -0.8}):
                 "url": model_record.get_url(),
                 "scale_factor": model_record.scale_factor,
                 "position": position,
-                "rotation": {"x": 0, "y": 0, "z": 0},
+                "rotation": rotation,
                 "category": model_record.wcategory,
                 "id": object_id},
             ])
 
 c = Controller()
 keyboard = Keyboard()
-camera = ThirdPersonCamera(position={"x": 1.0 , "y": 2.0, "z":3.2},
-                           look_at={"x": 1.0, "y": 1.3, "z": 2},
+camera = ThirdPersonCamera(position={"x": 0.1 , "y": 2.2, "z":-1.4},
+                           look_at={"x": 0, "y": 1.3, "z": -2.2},
                            avatar_id="a")
 
 mouse = Mouse(avatar_id="a")
 robot = Robot(name="niryo_one",
-              position={"x": 1.6, "y": 1, "z": 2.3},
-              rotation={"x": 0, "y": 180, "z": 0},
+              position={"x": 0.4, "y": 1, "z": -2.2},
+              rotation={"x": 0, "y": 180, "z": -1},
               robot_id=c.get_unique_id())
 
 c.add_ons.extend([camera, mouse, robot, keyboard])
@@ -41,11 +41,14 @@ c.add_ons.extend([camera, mouse, robot, keyboard])
 #c.communicate(TDWUtils.create_empty_room(12, 12))
 
 c.communicate(c.get_add_scene(scene_name="mm_kitchen_1b"))
-add_object(c, "sink_cabinet_unit_wood_oak_white_chrome_composite", position = {"x":1, "y":0, "z":2})
-add_object(c, "gas_stove", position = {"x":2 ,"y":0, "z":-1})
-add_object(c, "b04_bowl_smooth", position = {"x":1.4 ,"y":1.2, "z":2.1})
-add_object(c, "glass_table", position = {"x":1 ,"y":0, "z":0})
-add_object(c, "b04_bowl_smooth", position = {"x":1 ,"y":2, "z":0})
+add_object(c, "sink_cabinet_unit_wood_oak_white_chrome_composite", position = {"x":-0.2, "y":0, "z":-2.6})
+add_object(c, "gas_stove", position = {"x":1.2 ,"y":0, "z":-2.8},rotation={"x": 0, "y": 90, "z": 0})
+add_object(c, "b04_bowl_smooth", position = {"x":0.2 ,"y":1.2, "z":-2.5})
+add_object(c, "b03_morphy_2013__vray", position = {"x":-0.6 ,"y":1.2, "z":-2.5})
+add_object(c, "plate06", position = {"x":-0.6 ,"y":1.2, "z":-2.6})
+
+#add_object(c, "glass_table", position = {"x":0 ,"y":0, "z":-1.8})
+#add_object(c, "b04_bowl_smooth", position = {"x":1 ,"y":2, "z":0})
 
 for joint_id in robot.static.joints:
     joint_name = robot.static.joints[joint_id].name
@@ -63,11 +66,6 @@ while robot.joints_are_moving():
 #                                 robot.static.joint_ids_by_name["forearm_link"]: -60})
 
 
-
-# Wait for the joints to stop moving.
-while robot.joints_are_moving():
-    c.communicate([])
-
 off_x = 0
 off_y = 0
 
@@ -76,10 +74,9 @@ off_y = 0
 def demo():
 
     global off_x, off_y
-    #robot.static.joint_ids_by_name["hand_link"]
     off_x = off_x +10
+    print(off_x)
     robot.set_joint_targets(targets={robot.static.joint_ids_by_name["shoulder_link"]: 0 + off_x,
-                                 #robot.static.joint_ids_by_name["hand_link"]: 160 + off_y
                                  })
 def demo2():
 
@@ -91,6 +88,36 @@ def demo2():
     robot.set_joint_targets(targets={robot.static.joint_ids_by_name["shoulder_link"]: 0 + off_x,
                                  #robot.static.joint_ids_by_name["hand_link"]: 0 + off_y
                                  })
+    
+def hitandstop1():
+    
+    shoulder_id = robot.static.joint_ids_by_name["shoulder_link"]
+    tnow = robot.dynamic.joints[shoulder_id].angles[0]
+
+    robot.add_joint_forces(forces={robot.static.joint_ids_by_name["shoulder_link"]: 2})
+
+
+    while robot.joints_are_moving() and robot.dynamic.joints[shoulder_id].angles[0] < tnow+5 and robot.dynamic.joints[shoulder_id].angles[0] > tnow-5:
+        c.communicate([])
+
+    robot.stop_joints(joint_ids=[shoulder_id])
+    
+def hitandstop2():
+    
+    shoulder_id = robot.static.joint_ids_by_name["shoulder_link"]
+    tnow = robot.dynamic.joints[shoulder_id].angles[0]
+
+    robot.add_joint_forces(forces={robot.static.joint_ids_by_name["shoulder_link"]: -2})
+
+
+    while robot.joints_are_moving() and robot.dynamic.joints[shoulder_id].angles[0] < tnow+5 and robot.dynamic.joints[shoulder_id].angles[0] > tnow-5:
+        c.communicate([])
+
+    robot.stop_joints(joint_ids=[shoulder_id])
+    
+
+
+
 '''
 def arm1():
     print("wow")
@@ -115,8 +142,6 @@ def arm2():
 '''
 
 
-
-
 def hit1():
     print("hit1")
     robot.add_joint_forces(forces={robot.static.joint_ids_by_name["elbow_link"]: .5,})
@@ -129,7 +154,6 @@ def hit2():
 def arm1():
     print("hit1")
     robot.add_joint_forces(forces={robot.static.joint_ids_by_name["shoulder_link"]: .5,})
-
 
 def arm2():
     print("hit2")
@@ -152,6 +176,8 @@ keyboard.listen(key="J", function = arm1)
 keyboard.listen(key="K", function = arm2)
 keyboard.listen(key="A", function = hit1)
 keyboard.listen(key="D", function = hit2)
+keyboard.listen(key="Q", function = hitandstop1)
+keyboard.listen(key="E", function = hitandstop2)
 #c.communicate({"$type": "terminate"})
 
 done = False
@@ -178,3 +204,6 @@ while not done:
 
     c.communicate([])
 c.communicate({"$type": "terminate"})
+
+
+#python f:\cofemaking\TDWorldDataset\control.py
