@@ -74,7 +74,7 @@ off_y = 0
 
 
 def demo():
-    print("wow")
+
     global off_x, off_y
     #robot.static.joint_ids_by_name["hand_link"]
     off_x = off_x +10
@@ -82,7 +82,7 @@ def demo():
                                  #robot.static.joint_ids_by_name["hand_link"]: 160 + off_y
                                  })
 def demo2():
-    print("wow")
+
     global off_x, off_y
     #robot.static.joint_ids_by_name["hand_link"]
     off_x = off_x -10
@@ -91,16 +91,49 @@ def demo2():
     robot.set_joint_targets(targets={robot.static.joint_ids_by_name["shoulder_link"]: 0 + off_x,
                                  #robot.static.joint_ids_by_name["hand_link"]: 0 + off_y
                                  })
+'''
+def arm1():
+    print("wow")
+    global off_x, off_y
+    #robot.static.joint_ids_by_name["hand_link"]
+    off_y = off_y -10
+    #off_y = off_y - 10
+    print(off_x)
+    robot.set_joint_targets(targets={robot.static.joint_ids_by_name["arm_link"]: 0 + off_y,
+                                 #robot.static.joint_ids_by_name["hand_link"]: 0 + off_y
+                                 })
+def arm2():
+    print("wow")
+    global off_x, off_y
+    #robot.static.joint_ids_by_name["hand_link"]
+    off_y = off_y +10
+    #off_y = off_y - 10
+    print(off_x)
+    robot.set_joint_targets(targets={robot.static.joint_ids_by_name["arm_link"]: 0 + off_y,
+                                 #robot.static.joint_ids_by_name["hand_link"]: 0 + off_y
+                                 })
+'''
+
+
+
 
 def hit1():
     print("hit1")
-    robot.add_joint_forces(forces={robot.static.joint_ids_by_name["shoulder_link"]: 500,})
+    robot.add_joint_forces(forces={robot.static.joint_ids_by_name["elbow_link"]: .5,})
 
 
 def hit2():
     print("hit2")
-    robot.add_joint_forces(forces={robot.static.joint_ids_by_name["shoulder_link"]: -500,})
+    robot.add_joint_forces(forces={robot.static.joint_ids_by_name["elbow_link"]: -.5,})
 
+def arm1():
+    print("hit1")
+    robot.add_joint_forces(forces={robot.static.joint_ids_by_name["shoulder_link"]: .5,})
+
+
+def arm2():
+    print("hit2")
+    robot.add_joint_forces(forces={robot.static.joint_ids_by_name["shoulder_link"]: -.5,})
 
 
 
@@ -115,6 +148,8 @@ def turnleft():
 keyboard.listen(key="Escape", commands=[{"$type": "terminate"}])
 keyboard.listen(key="W", function = demo)
 keyboard.listen(key="S", function = demo2)
+keyboard.listen(key="J", function = arm1)
+keyboard.listen(key="K", function = arm2)
 keyboard.listen(key="A", function = hit1)
 keyboard.listen(key="D", function = hit2)
 #c.communicate({"$type": "terminate"})
