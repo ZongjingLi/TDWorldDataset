@@ -16,7 +16,7 @@ from tdw.add_ons.third_person_camera import ThirdPersonCamera
 from tdw.add_ons.image_capture import ImageCapture
 from tdw.output_data import OutputData, Images
 from utils import get_material, get_model
-
+import random
 import math
 import random
 import numpy as np
@@ -415,32 +415,282 @@ class KitchenController(Controller):
         object_id = self.get_unique_id()
         #material_record = get_material("parquet_long_horizontal_clean")
         model_record = get_model(model)
+        scale_factor = model_record.scale_factor
+        if model == "apple":
+            scale_factor *= 0.1
         self.communicate([
             {"$type": "add_object",
                 "name": model_record.name,
                 "url": model_record.get_url(),
-                "scale_factor": model_record.scale_factor,
+                "scale_factor":  model_record.scale_factor ,
                 "position": position,
-                "scale_factor": scale_factor,
                 "rotation": rotation,
                 "category": model_record.wcategory,
                 "id": object_id},
         ])
         self.object_ids.append(object_id)
+
+    def set_floor(self) -> List[dict]:
+        materials = ["parquet_wood_mahogany", "parquet_long_horizontal_clean", "parquet_wood_red_cedar"]
+        material_name = materials[self.rng.randint(0, len(materials))]
+        texture_scale: float = float(self.rng.uniform(4, 4.5))
+        return [self.get_add_material(material_name=material_name),
+                {"$type": "set_floor_material",
+                 "name": material_name},
+                {"$type": "set_floor_texture_scale",
+                 "scale": {"x": texture_scale, "y": texture_scale}},
+                {"$type": "set_floor_color",
+                 "color": {"r": float(self.rng.uniform(0.7, 1)),
+                           "g": float(self.rng.uniform(0.7, 1)),
+                           "b": float(self.rng.uniform(0.7, 1)),
+                           "a": 1.0}}]
+
+    def set_walls(self) -> List[dict]:
+        materials = ["cinderblock_wall", "concrete_tiles_linear_grey", "old_limestone_wall_reinforced"]
+        material_name = materials[self.rng.randint(0, len(materials))]
+        texture_scale: float = float(self.rng.uniform(0.1, 0.3))
+        return [self.get_add_material(material_name=material_name),
+                {"$type": "set_proc_gen_walls_material",
+                 "name": material_name},
+                {"$type": "set_proc_gen_walls_texture_scale",
+                 "scale": {"x": texture_scale, "y": texture_scale}},
+                {"$type": "set_proc_gen_walls_color",
+                 "color": {"r": float(self.rng.uniform(0.7, 1)),
+                           "g": float(self.rng.uniform(0.7, 1)),
+                           "b": float(self.rng.uniform(0.7, 1)),
+                           "a": 1.0}}]
+
+    def generate_scene(self, name, scene_name = None):
+        path = self.output_directory + f"/{name}"
+        commands = []
+        commands.extend(TDWUtils.create_avatar(position={"x": -0.2 , "y": 2, "z":-1.8},
+                                       avatar_id="a",
+                                       look_at={"x": -0.2, "y": 1.5, "z": -2.2},))
+
+
+        W = self.W
+        H = self.H
+        my_strings = ["apple"]#, "b04_orange_00", "pan3", "pan03", "pan05", "pan1", "pan01", "pot_composite", "spagetti-server", "soup_ladle_black_02", "spatula",]
+
+        robot = Robot(name="niryo_one",
+                      #0.35
+              position={"x": -0.7, "y": 0.9, "z": 2.7},
+              rotation={"x": 0, "y": 180, "z": 0},
+              robot_id= self.get_unique_id())
+        self.add_ons.extend([robot])
+
+
+        if False:
+            if scene_name is None: scene_name = "mm_kitchen_1b"
+            self.communicate(self.get_add_scene(scene_name=scene_name))
+        else:
+            self.communicate(TDWUtils.create_empty_room(12,12))
+            self.communicate(self.set_floor())
+            self.communicate(self.set_walls())
+
+        #TODO: replace with any texture cabinet
+        #self.add_object("sink_cabinet_unit_wood_oak_white_chrome_composite", position = {"x":-0.2, "y":0, "z":-2.7})        
+        self.add_object("cabinet_36_two_door_wood_beech_honey_composite", position = {"x":0, "y":0, "z":-2.7})
+        self.add_object("cabinet_36_two_door_wood_beech_honey_composite", position = {"x":-0.93, "y":0, "z":-2.7})
+        self.add_object("carpet_rug", position = {"x":-0.3, "y":0.94, "z":-2.7},scale_factor=0.25,rotation={"x": 0, "y": 90, "z": 0})
+        self.add_object("gas_stove", position = {"x":1.2 ,"y":0, "z":-2.8},rotation={"x": 0, "y": 90, "z": 0})
+        #int(random.uniform(2, 5))
+        for i in range(1, 5):
+            t=random.choice(my_strings)
+            print(t)
+            self.add_object(t, position = {"x":random.uniform(-0.75, .35) ,"y":1.1, "z":random.uniform(-2.9, -2.5)})
+
+
+        commands.extend([
+            {"$type": "set_screen_size", "width":W, "height": H},
+            {"$type": "set_pass_masks", "pass_masks": ["_img", "_id", "_albedo"], "avatar_id": "a"},
+            {"$type": "send_images", "frequency": "always", "ids": ["a"]}])
+        
+        """give out the color and id of the objects in the image"""
+        commands.extend([
+                 {"$type": "send_segmentation_colors",
+                  "frequency": "once"},
+                 {"$type": "send_id_pass_segmentation_colors",
+                  "frequency": "always"}])
+
+        responds = self.communicate(commands)
+        segmentation_colors_per_object = dict()
+        segmentation_colors_in_image = list()
+        
+        binary_mask = torch.zeros([W, H])
+
+        for i in range(len(responds)):
+            r_id = OutputData.get_data_type_id(responds[i])
+            if r_id == "imag":
+                image = Images(responds[i])
+                avatar_id = image.get_avatar_id()
+                TDWUtils.save_images(image, filename = f"{name}", output_directory = self.output_directory+ f"/img")
+
+        image = (torch.tensor(plt.imread(self.output_directory + f"/img/id_{name}.png")) * 255).int()
+        
+        for i in range(len(responds)):
+            r_id = OutputData.get_data_type_id(responds[i])
+            if r_id == "segm":
+                segm = SegmentationColors(responds[i])
+                for j in range(segm.get_num()):
+                    object_id = segm.get_object_id(j)
+                    if (object_id in self.object_ids):
+                        object_name = self.object_ids.index(object_id)
+                        segmentation_color = segm.get_object_color(j)
+                        segmentation_colors_per_object[object_id] = segmentation_color
+                        #print(self.object_ids.index(object_id), segmentation_color)
+                        #print((torch.tensor(image[:,:]) == segmentation_color).shape)
+                        locs = torch.max(image == torch.tensor(segmentation_color), dim = - 1, keepdim = False).values
+                        #print(locs.shape)
+                        #print(binary_mask.shape)
+                        binary_mask[locs] = self.object_ids.index(object_id) + 1
+
+        np.save(self.output_directory+ f"/img/mask_{name}" ,binary_mask)
     
+        """
+            elif r_id == "ipsc":
+                ipsc = IdPassSegmentationColors(responds[i])
+                for j in range(ipsc.get_num_segmentation_colors()):
+                    print(ipsc.get_segmentation_color(j))
+                    segmentation_colors_in_image.append(ipsc.get_segmentation_color(j))
+        """
+        for object_id in segmentation_colors_per_object:
+            for i in range(len(segmentation_colors_in_image)):
+                if any((segmentation_colors_in_image[i] == j).all() for j in segmentation_colors_per_object.values()):
+                    #print(object_id, segmentation_color[i])
+                    break
+
+        scene_info = {}
+        '''
+----------------------------------------------
+
+
+
+
+
+        commands = []
+        """create an avatar to observe the environment"""
+        theta = np.random.random() * 2 * np.pi
+        scale = np.random.random() * 0.2 + 1.8
+        commands.extend(TDWUtils.create_avatar(position={"x": np.cos(theta) * scale, "y": 1.32, "z": np.sin(theta) * scale},
+                                       avatar_id="a",
+                                       look_at={"x": 0.0, "y": 0.4, "z": 0.0}))
+        
+        """create the room and setup the floor, walls etc to make it look real haha"""
+
+        #self.communicate(self.set_floor())
+        #self.communicate(self.set_walls())
+
+        if scene_name is None: scene_name = "mm_craftroom_4a"
+        self.communicate(self.get_add_scene(scene_name=scene_name))
+
+        """add some objects in the scene"""
+
+        self.add_object(model_name, position = {"x":0, "y":height, "z":0})
+
+        self.add_obj1_on_obj2("small_table_green_marble", "jug01")
+
+        self.add_object("white_lounger_chair")
+    
+        
+        commands.extend([
+            {"$type": "set_screen_size", "width":W, "height": H},
+            {"$type": "set_pass_masks", "pass_masks": ["_img", "_id", "_albedo"], "avatar_id": "a"},
+            {"$type": "send_images", "frequency": "always", "ids": ["a"]}])
+        
+        """give out the color and id of the objects in the image"""
+        commands.extend([
+                 {"$type": "send_segmentation_colors",
+                  "frequency": "once"},
+                 {"$type": "send_id_pass_segmentation_colors",
+                  "frequency": "always"}])
+
+        responds = self.communicate(commands)
+        segmentation_colors_per_object = dict()
+        segmentation_colors_in_image = list()
+        
+        binary_mask = torch.zeros([W, H])
+
+        for i in range(len(responds)):
+            r_id = OutputData.get_data_type_id(responds[i])
+            if r_id == "imag":
+                image = Images(responds[i])
+                avatar_id = image.get_avatar_id()
+                TDWUtils.save_images(image, filename = f"{img_name}", output_directory = self.output_directory+ f"/img")
+
+        image = (torch.tensor(plt.imread(self.output_directory + f"/img/id_{img_name}.png")) * 255).int()
+        
+        for i in range(len(responds)):
+            r_id = OutputData.get_data_type_id(responds[i])
+            if r_id == "segm":
+                segm = SegmentationColors(responds[i])
+                for j in range(segm.get_num()):
+                    object_id = segm.get_object_id(j)
+                    object_name = self.object_ids.index(object_id)
+                    segmentation_color = segm.get_object_color(j)
+                    segmentation_colors_per_object[object_id] = segmentation_color
+                    #print(self.object_ids.index(object_id), segmentation_color)
+                    #print((torch.tensor(image[:,:]) == segmentation_color).shape)
+                    locs = torch.max(image == torch.tensor(segmentation_color), dim = - 1, keepdim = False).values
+                    #print(locs.shape)
+                    #print(binary_mask.shape)
+                    binary_mask[locs] = self.object_ids.index(object_id) + 1
+                    """
+                    for i in range(self.W):
+                        for j in range(self.H):
+                            #print(image[i,j] ,torch.tensor(segmentation_color),list(image[i,j]) == list(torch.tensor(segmentation_color).int()))
+                            if list(image[i,j]) == list(torch.tensor(segmentation_color).int()):
+                                binary_mask[i,j] = self.object_ids.index(object_id)
+                    """
+            #np.save(binary_mask,)
+        np.save(self.output_directory+ f"/img/mask_{img_name}" ,binary_mask)
+    
+        """
+            elif r_id == "ipsc":
+                ipsc = IdPassSegmentationColors(responds[i])
+                for j in range(ipsc.get_num_segmentation_colors()):
+                    print(ipsc.get_segmentation_color(j))
+                    segmentation_colors_in_image.append(ipsc.get_segmentation_color(j))
+        """
+        for object_id in segmentation_colors_per_object:
+            for i in range(len(segmentation_colors_in_image)):
+                if any((segmentation_colors_in_image[i] == j).all() for j in segmentation_colors_per_object.values()):
+                    #print(object_id, segmentation_color[i])
+                    break
+
+        scene_info = {}
+
+
+
+
+
+
+----------------------------------------------
+'''
+
+        return 
+
+        
+
+
+
+
+
+
+
     def generate_sequence(self, name):
         path = self.output_directory + f"/{name}"
-        print(path)
+
         keyboard = Keyboard()
-        camera = ThirdPersonCamera(position={"x": -0.5 , "y": 1.9, "z":-1.7},
-                           look_at={"x": -0.3, "y": 1.3, "z": -2.2},
+        camera = ThirdPersonCamera(position={"x": -0.2 , "y": 2, "z":-1.8},
+                           look_at={"x": -0.2, "y": 1.5, "z": -2.2},
                            avatar_id="a")
         capture = ImageCapture(avatar_ids=["a"], path=path)
 
         mouse = Mouse(avatar_id="a")
         robot = Robot(name="niryo_one",
-              position={"x": 0.4, "y": 1, "z": -2.5},
-              rotation={"x": 0, "y": 180, "z": -1},
+              position={"x": 0.25, "y": 1, "z": -2.7},
+              rotation={"x": 0, "y": 180, "z": 0},
               robot_id= self.get_unique_id())
 
         self.add_ons.extend([camera, mouse, robot, keyboard, capture])
@@ -450,26 +700,26 @@ class KitchenController(Controller):
         #TODO: replace with any texture cabinet
         #self.add_object("sink_cabinet_unit_wood_oak_white_chrome_composite", position = {"x":-0.2, "y":0, "z":-2.7})        
         self.add_object("cabinet_36_two_door_wood_beech_honey_composite", position = {"x":0, "y":0, "z":-2.7})
-        self.add_object("cabinet_36_two_door_wood_beech_honey_composite", position = {"x":-1.7, "y":0, "z":-2.7})
+        self.add_object("cabinet_36_two_door_wood_beech_honey_composite", position = {"x":-0.92, "y":0, "z":-2.7})
 
 
-        self.add_object("carpet_rug", position = {"x":-0.2, "y":1.2, "z":-2.7},scale_factor=0.25,rotation={"x": 0, "y": 90, "z": 0})
+        self.add_object("carpet_rug", position = {"x":-0.3, "y":1.05, "z":-2.7},scale_factor=0.25,rotation={"x": 0, "y": 90, "z": 0})
 
         
         self.add_object("gas_stove", position = {"x":1.2 ,"y":0, "z":-2.8},rotation={"x": 0, "y": 90, "z": 0})
-        self.add_object("b04_bowl_smooth", position = {"x":0.2 ,"y":1.3, "z":-2.7})
-        self.add_object("b03_morphy_2013__vray", position = {"x":-0.6 ,"y":1.3, "z":-2.5})
-        self.add_object("plate06", position = {"x":-0.6 ,"y":1.3, "z":-2.8})
+        self.add_object("b04_bowl_smooth", position = {"x":0.2 ,"y":1.3, "z":-2.5})
+        self.add_object("b03_morphy_2013__vray", position = {"x":-0.6 ,"y":1.3, "z":-2.7})
+        ##self.add_object("plate06", position = {"x":-0.4 ,"y":1.3, "z":-2.8})
         self.add_object("b04_bottle_2_max", position = {"x":-0 ,"y":1.3, "z":-3})
         
         #TODO: replace with any uniform texture/color mug
-        self.add_object("coffeemug", position = {"x":0.2 ,"y":1.3, "z":-3})
+        ##self.add_object("coffeemug", position = {"x":0 ,"y":1.3, "z":-2.8})
         
         #TODO: replace with any uniform color pan
-        self.add_object("measuring_pan", position = {"x":-0.2 ,"y":1.3, "z":-2.7})
+        self.add_object("measuring_pan", position = {"x":-0 ,"y":1.3, "z":-2.7},scale_factor=1.5)
         
         #TODO: replace with any color uniform fruit
-        self.add_object("orange", position = {"x":0.3 ,"y":1.3, "z":-2.8})
+        self.add_object("orange", position = {"x":0.1 ,"y":1.2, "z":-2.7})
 
         # Set the initial pose.
         global off_x, off_y
@@ -480,12 +730,16 @@ class KitchenController(Controller):
             global off_x, off_y
             off_x = off_x +10
             print(off_x)
+            shoulder_id = robot.static.joint_ids_by_name["shoulder_link"]
+            print(robot.dynamic.joints[shoulder_id].angles[0])
             robot.set_joint_targets(targets={robot.static.joint_ids_by_name["shoulder_link"]: 0 + off_x,
                                  })
         def demo2():
             global off_x, off_y
             off_x = off_x -10
             print(off_x)
+            shoulder_id = robot.static.joint_ids_by_name["shoulder_link"]
+            print(robot.dynamic.joints[shoulder_id].angles[0])
             robot.set_joint_targets(targets={robot.static.joint_ids_by_name["shoulder_link"]: 0 + off_x,
                                  })
         def hitandstop1():

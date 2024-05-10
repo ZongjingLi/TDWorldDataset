@@ -27,13 +27,13 @@ def generate(args):
     scene_controller.communicate({"$type": "terminate"})
     sys.stdout.write(f"\ngenerate split:{split} k:{k} num:{scene_num} scenes done.")
 
-def generate_kitchen(args, split_name = "0"):
+def generate_kitchen(args, split_name = "kllk"):
     split = args.split
     scene_num = args.scene_num
     scene_controller = KitchenController(split = args.split, output_directory = args.output_directory)
-    scene_controller.generate_sequence(split_name)
+    scene_controller.generate_scene(split_name)
 
-local = False
+local = True
 dataset_dir = "/Users/melkor/Documents/datasets" if local else "datasets"
 dataset_name = "TDWKitchen"
 
