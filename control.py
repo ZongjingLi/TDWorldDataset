@@ -54,7 +54,10 @@ c.add_ons.extend([camera, mouse, robot, keyboard, capture])
 #c.communicate(TDWUtils.create_empty_room(12, 12))
 
 c.communicate(c.get_add_scene(scene_name="mm_kitchen_1b"))
-add_object(c, "sink_cabinet_unit_wood_oak_white_chrome_composite", position = {"x":-0.2, "y":0, "z":-2.7})
+#add_object(c, "sink_cabinet_unit_wood_oak_white_chrome_composite", position = {"x":-0.2, "y":0, "z":-2.7})
+
+add_object(c, "cabinet_36_two_door_wood_beech_honey_composite", position = {"x":-0.2, "y":0, "z":-2.7})
+#  cabinet_36_two_door_wood_beech_honey_composite
 add_object(c, "gas_stove", position = {"x":1.2 ,"y":0, "z":-2.8},rotation={"x": 0, "y": 90, "z": 0})
 add_object(c, "b04_bowl_smooth", position = {"x":0.2 ,"y":1.2, "z":-2.7})
 add_object(c, "b03_morphy_2013__vray", position = {"x":-0.6 ,"y":1.2, "z":-2.5})

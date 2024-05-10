@@ -33,7 +33,7 @@ def generate_kitchen(args, split_name = "0"):
     scene_controller = KitchenController(split = args.split, output_directory = args.output_directory)
     scene_controller.generate_sequence(split_name)
 
-local = True
+local = False
 dataset_dir = "/Users/melkor/Documents/datasets" if local else "datasets"
 dataset_name = "TDWKitchen"
 

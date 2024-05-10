@@ -411,7 +411,7 @@ class KitchenController(Controller):
         split = 'train'
         self.output_directory = f"{output_directory}/{split}"
 
-    def add_object(self, model, position = {"x": -0.1, "y": 0, "z": -0.8}, rotation = {"x": 0, "y": 0, "z": 0}):
+    def add_object(self, model, position = {"x": -0.1, "y": 0, "z": -0.8}, rotation = {"x": 0, "y": 0, "z": 0},scale_factor=1):
         object_id = self.get_unique_id()
         #material_record = get_material("parquet_long_horizontal_clean")
         model_record = get_model(model)
@@ -421,7 +421,8 @@ class KitchenController(Controller):
                 "url": model_record.get_url(),
                 "scale_factor": model_record.scale_factor,
                 "position": position,
-                "rotation": {"x": 0, "y": 0, "z": 0},
+                "scale_factor": scale_factor,
+                "rotation": rotation,
                 "category": model_record.wcategory,
                 "id": object_id},
         ])
@@ -447,21 +448,28 @@ class KitchenController(Controller):
         self.communicate(self.get_add_scene(scene_name="mm_kitchen_1b"))
         
         #TODO: replace with any texture cabinet
-        self.add_object("sink_cabinet_unit_wood_oak_white_chrome_composite", position = {"x":-0.2, "y":0, "z":-2.7})
+        #self.add_object("sink_cabinet_unit_wood_oak_white_chrome_composite", position = {"x":-0.2, "y":0, "z":-2.7})        
+        self.add_object("cabinet_36_two_door_wood_beech_honey_composite", position = {"x":0, "y":0, "z":-2.7})
+        self.add_object("cabinet_36_two_door_wood_beech_honey_composite", position = {"x":-1.7, "y":0, "z":-2.7})
+
+
+        self.add_object("carpet_rug", position = {"x":-0.2, "y":1.2, "z":-2.7},scale_factor=0.25,rotation={"x": 0, "y": 90, "z": 0})
+
+        
         self.add_object("gas_stove", position = {"x":1.2 ,"y":0, "z":-2.8},rotation={"x": 0, "y": 90, "z": 0})
-        self.add_object("b04_bowl_smooth", position = {"x":0.2 ,"y":1.2, "z":-2.7})
-        self.add_object("b03_morphy_2013__vray", position = {"x":-0.6 ,"y":1.2, "z":-2.5})
-        self.add_object("plate06", position = {"x":-0.6 ,"y":1.2, "z":-2.8})
-        self.add_object("b04_bottle_2_max", position = {"x":-0 ,"y":1.2, "z":-3})
+        self.add_object("b04_bowl_smooth", position = {"x":0.2 ,"y":1.3, "z":-2.7})
+        self.add_object("b03_morphy_2013__vray", position = {"x":-0.6 ,"y":1.3, "z":-2.5})
+        self.add_object("plate06", position = {"x":-0.6 ,"y":1.3, "z":-2.8})
+        self.add_object("b04_bottle_2_max", position = {"x":-0 ,"y":1.3, "z":-3})
         
         #TODO: replace with any uniform texture/color mug
-        self.add_object("coffeemug", position = {"x":0.2 ,"y":1.2, "z":-3})
+        self.add_object("coffeemug", position = {"x":0.2 ,"y":1.3, "z":-3})
         
         #TODO: replace with any uniform color pan
-        self.add_object("measuring_pan", position = {"x":-0.2 ,"y":1.2, "z":-2.7})
+        self.add_object("measuring_pan", position = {"x":-0.2 ,"y":1.3, "z":-2.7})
         
         #TODO: replace with any color uniform fruit
-        self.add_object("orange", position = {"x":0.3 ,"y":1.2, "z":-2.8})
+        self.add_object("orange", position = {"x":0.3 ,"y":1.3, "z":-2.8})
 
         # Set the initial pose.
         global off_x, off_y
