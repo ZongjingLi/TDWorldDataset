@@ -8,8 +8,8 @@
 import sys
 import os
 import argparse
-from scene_distribution import SceneController, indoor_options
-print(indoor_options)
+from scene_distribution import SceneController, KitchenController, indoor_options
+
 def generate(args):
     split = args.split
     scene_num = args.scene_num
@@ -27,17 +27,25 @@ def generate(args):
     scene_controller.communicate({"$type": "terminate"})
     sys.stdout.write(f"\ngenerate split:{split} k:{k} num:{scene_num} scenes done.")
 
+def generate_kitchen(args, split_name = "0"):
+    split = args.split
+    scene_num = args.scene_num
+    scene_controller = KitchenController(split = args.split, output_directory = args.output_directory)
+    scene_controller.generate_sequence(split_name)
+
 local = True
 dataset_dir = "/Users/melkor/Documents/datasets" if local else "datasets"
-
+dataset_name = "TDWKitchen"
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--scene_num",                              default = 30)
-parser.add_argument("--output_directory",                       default = f"{dataset_dir}/TDWRoom")
+parser.add_argument("--output_directory",                       default = f"{dataset_dir}/{dataset_name}")
 parser.add_argument("--split",                                  default = "train")
 parser.add_argument("--vqa_pair_per_scene",                     default = 2)
 
 if __name__ == "__main__":
     args = parser.parse_args()
-
-    generate(args)
+    if dataset_name == "TDWRoom":
+        generate(args)
+    if dataset_name == "TDWKitchen":
+        generate_kitchen(args)

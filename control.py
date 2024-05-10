@@ -8,6 +8,12 @@ import numpy as np
 from utils import get_material, get_model
 from tdw.backend.paths import EXAMPLE_CONTROLLER_OUTPUT_PATH
 from tdw.add_ons.image_capture import ImageCapture
+from tdw.output_data import OutputData, Images, Transforms, Rigidbodies, Bounds, SegmentationColors, IdPassSegmentationColors
+
+import torch
+import matplotlib.pyplot as plt
+split = 'train'
+output_directory = f"datasets/TDWKitchen/{split}"
 
 def add_object(c, model, position = {"x": -0.1, "y": 0, "z": -0.8}, rotation = {"x": 0, "y": 0, "z": 0}):
         object_id = c.get_unique_id()
@@ -24,7 +30,7 @@ def add_object(c, model, position = {"x": -0.1, "y": 0, "z": -0.8}, rotation = {
                 "category": model_record.wcategory,
                 "id": object_id},
             ])
-
+img_name = 0
 c = Controller()
 keyboard = Keyboard()
 camera = ThirdPersonCamera(position={"x": -0.5 , "y": 1.9, "z":-1.7},
@@ -66,6 +72,84 @@ for joint_id in robot.static.joints:
     joint_segmentation_color = robot.static.joints[joint_id].segmentation_color
     joint_type = robot.static.joints[joint_id].joint_type
     print(joint_name, joint_mass, joint_segmentation_color, joint_type)
+
+W=512
+H=512
+commands = []
+commands.extend([
+    {"$type": "set_screen_size", "width":W, "height": H},
+    {"$type": "set_pass_masks", "pass_masks": ["_img", "_id", "_albedo"], "avatar_id": "a"},
+    {"$type": "send_images", "frequency": "always", "ids": ["a"]}])
+
+"""give out the color and id of the objects in the image"""
+commands.extend([
+            {"$type": "send_segmentation_colors",
+            "frequency": "once"},
+            {"$type": "send_id_pass_segmentation_colors",
+            "frequency": "always"}])
+
+responds = c.communicate(commands)
+segmentation_colors_per_object = dict()
+segmentation_colors_in_image = list()
+
+binary_mask = torch.zeros([W, H])
+
+for i in range(len(responds)):
+    r_id = OutputData.get_data_type_id(responds[i])
+    if r_id == "imag":
+        image = Images(responds[i])
+        avatar_id = image.get_avatar_id()
+        TDWUtils.save_images(image, filename = f"{img_name}", output_directory = output_directory+ f"/img")
+
+image = (torch.tensor(plt.imread(output_directory + f"/img/id_{img_name}.png")) * 255).int()
+
+for i in range(len(responds)):
+    r_id = OutputData.get_data_type_id(responds[i])
+    if r_id == "segm":
+        segm = SegmentationColors(responds[i])
+        for j in range(segm.get_num()):
+            object_id = segm.get_object_id(j)
+            #object_name = self.object_ids.index(object_id)
+            segmentation_color = segm.get_object_color(j)
+            segmentation_colors_per_object[object_id] = segmentation_color
+            #print(self.object_ids.index(object_id), segmentation_color)
+            #print((torch.tensor(image[:,:]) == segmentation_color).shape)
+            locs = torch.max(image == torch.tensor(segmentation_color), dim = - 1, keepdim = False).values
+            #print(locs.shape)
+            #print(binary_mask.shape)
+            binary_mask[locs] = c.object_ids.index(object_id) + 1
+            """
+            for i in range(self.W):
+                for j in range(self.H):
+                    #print(image[i,j] ,torch.tensor(segmentation_color),list(image[i,j]) == list(torch.tensor(segmentation_color).int()))
+                    if list(image[i,j]) == list(torch.tensor(segmentation_color).int()):
+                        binary_mask[i,j] = self.object_ids.index(object_id)
+            """
+    #np.save(binary_mask,)
+np.save(c.output_directory+ f"/img/mask_{img_name}" ,binary_mask)
+
+"""
+    elif r_id == "ipsc":
+        ipsc = IdPassSegmentationColors(responds[i])
+        for j in range(ipsc.get_num_segmentation_colors()):
+            print(ipsc.get_segmentation_color(j))
+            segmentation_colors_in_image.append(ipsc.get_segmentation_color(j))
+"""
+for object_id in segmentation_colors_per_object:
+    for i in range(len(segmentation_colors_in_image)):
+        if any((segmentation_colors_in_image[i] == j).all() for j in segmentation_colors_per_object.values()):
+            #print(object_id, segmentation_color[i])
+            break
+
+
+
+
+
+
+
+
+
+
 
 # Set the initial pose.
 while robot.joints_are_moving():
