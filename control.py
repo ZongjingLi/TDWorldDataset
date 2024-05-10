@@ -47,7 +47,7 @@ add_object(c, "b04_bowl_smooth", position = {"x":0.2 ,"y":1.2, "z":-2.5})
 add_object(c, "b03_morphy_2013__vray", position = {"x":-0.6 ,"y":1.2, "z":-2.5})
 add_object(c, "plate06", position = {"x":-0.6 ,"y":1.2, "z":-2.6})
 
-#add_object(c, "glass_table", position = {"x":0 ,"y":0, "z":-1.8})
+#add_object(c, "glass_table", position = {"x":0 ,"y":0, "z":-1.8}) 
 #add_object(c, "b04_bowl_smooth", position = {"x":1 ,"y":2, "z":0})
 
 for joint_id in robot.static.joints:
