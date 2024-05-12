@@ -21,11 +21,13 @@ import math
 import random
 import numpy as np
 
+import json
 from typing import List
 
 import torch
 import matplotlib.pyplot as plt
 import pandas as pd
+from rinarak.utils.os import save_json
 
 indoor_options = [
     {"object_room": ["box_room_2018"]}, 
@@ -33,6 +35,8 @@ indoor_options = [
     {"craftroom": ["mm_craftroom_4a",  "mm_craftroom_1a" ,"monkey_physics_room"]}, 
     {"diningroom": ["mm_craftroom_4a",  "mm_craftroom_1a" ]}
 ]
+
+# tdw_room
 
 class SceneController(Controller):
     def __init__(self, split = "train", port = 1928, output_directory = "datasets/TDWRoom"):
@@ -48,6 +52,10 @@ class SceneController(Controller):
         self.rng: np.random.RandomState = np.random.RandomState(32)
 
         self.W, self.H = 512, 512
+
+        scene_name = "tdw_room"
+        self.communicate(self.get_add_scene(scene_name=scene_name))
+
 
 
     def reset_scene(self, option = None):
@@ -274,8 +282,7 @@ class SceneController(Controller):
         #self.communicate(self.set_floor())
         #self.communicate(self.set_walls())
 
-        if scene_name is None: scene_name = "mm_craftroom_4a"
-        self.communicate(self.get_add_scene(scene_name=scene_name))
+        #if scene_name is None: scene_name = "tdw_room"
 
         """add some objects in the scene"""
 
@@ -409,20 +416,41 @@ class KitchenController(Controller):
         self.W, self.H = 512, 512
 
         split = 'train'
-        self.output_directory = f"{output_directory}/{split}"
+        scene_split = "0"
+        self.output_directory = f"{output_directory}/{split}/{scene_split}"
+
+        robot = Robot(name="niryo_one",
+                      #0.35
+              position={"x": 0.2, "y": 0.98, "z": -2.7},
+              rotation={"x": 0, "y": 180, "z": 0},
+              robot_id= self.get_unique_id())
+        self.add_ons.extend([robot])
+
+        self.scale_factors = {
+            "apple": 2.0,
+            "b04_orange_00": 2.0,
+            "coaster": 3.0,
+            "box": 0.2,
+            "bowl": 0.2,
+        }
+        scene_name = "mm_kitchen_1b"
+        self.communicate(self.get_add_scene(scene_name=scene_name))
 
     def add_object(self, model, position = {"x": -0.1, "y": 0, "z": -0.8}, rotation = {"x": 0, "y": 0, "z": 0},scale_factor=1):
         object_id = self.get_unique_id()
         #material_record = get_material("parquet_long_horizontal_clean")
         model_record = get_model(model)
-        scale_factor = model_record.scale_factor
-        if model == "apple":
-            scale_factor *= 0.1
+
+        for name in self.scale_factors:
+            if name in model:
+                scale_factor *= self.scale_factors[name]
+                print(name, scale_factor)
+                break
         self.communicate([
             {"$type": "add_object",
                 "name": model_record.name,
                 "url": model_record.get_url(),
-                "scale_factor":  model_record.scale_factor ,
+                "scale_factor":  model_record.scale_factor * scale_factor ,
                 "position": position,
                 "rotation": rotation,
                 "category": model_record.wcategory,
@@ -460,6 +488,11 @@ class KitchenController(Controller):
                            "b": float(self.rng.uniform(0.7, 1)),
                            "a": 1.0}}]
 
+    def reset_scene(self, option = None):
+        for object_id in self.object_ids:
+            self.communicate({"$type": "destroy_object", "id": object_id})
+        self.object_ids = []
+
     def generate_scene(self, name, scene_name = None):
         path = self.output_directory + f"/{name}"
         commands = []
@@ -470,19 +503,47 @@ class KitchenController(Controller):
 
         W = self.W
         H = self.H
-        my_strings = ["apple"]#, "b04_orange_00", "pan3", "pan03", "pan05", "pan1", "pan01", "pot_composite", "spagetti-server", "soup_ladle_black_02", "spatula",]
+        my_strings = ["apple", "b04_orange_00", "pan3", "pan03", "pan05", "pan1", "pan01", "pot_composite", "spagetti-server", "soup_ladle_black_02", "spatula", "spoon2","spoon1","spatula3","spatula2","square_coaster_wood","square_coaster_stone","teatray","baking_sheet08","baking_sheet07","round_coaster_cherry","tray_02","plate05","plate06","round_coaster_stone_dark","box_tapered_beech","box_tapered_white_mesh","round_bowl_large_thin","round_bowl_small_beech","round_bowl_small_walnut","round_bowl_large_padauk",]
+        table = [
+            "apple green circle not-any-texture small fruit",
+            "b04_orange_00 orange circle not-any-texture small fruit",
+            "pan3 gray not-any-shape metal small pan",
+            "pan03 black not-any-shape metal small pan",
+            "pan05 black not-any-shape metal small pan",
+            "pan1 gray not-any-shape metal small pan",
+            "pan01 black not-any-shape metal small pan",
+            "pot_composite gray not-any-shape metal small pan",
+            "spagetti-server black not-any-shape metal small utensil",
+            "soup_ladle_black_02 black not-any-shape metal small utensil",
+            "spatula black not-any-shape metal small utensil",
+            "spoon2 gray not-any-shape metal small utensil",
+            "spoon1 gray not-any-shape metal small utensil",
+            "spatula3 black not-any-shape metal small utensil",
+            "spatula2 black not-any-shape metal small utensil",
+            "square_coaster_wood brown rectangle wooden small dish",
+            "square_coaster_stone white rectangle rug small dish",
+            "teatray brown rectangle wooden small dish",
+            "baking_sheet08 white rectangle metal small dish",
+            "baking_sheet07 white rectangle metal small dish",
+            "round_coaster_cherry brown circle wooden small dish",
+            "tray_02 white circle metal small dish",
+            "plate05 white circle metal small dish",
+            "plate06 white circle metal small dish",
+            "round_coaster_stone_dark gray circle rug small dish",
+            "box_tapered_beech brown rectangle wooden small bowl",
+            "box_tapered_white_mesh white rectangle rug small bowl",
+            "round_bowl_large_thin white not-any-shape not-any-texture small bowl",
+            "round_bowl_small_beech brown not-any-shape wooden small bowl",
+            "round_bowl_small_walnut black not-any-shape wooden small bowl",
+            "round_bowl_large_padauk brownnot-any-shape wooden small bowl"
+        ]
 
-        robot = Robot(name="niryo_one",
-                      #0.35
-              position={"x": -0.7, "y": 0.9, "z": 2.7},
-              rotation={"x": 0, "y": 180, "z": 0},
-              robot_id= self.get_unique_id())
-        self.add_ons.extend([robot])
 
 
-        if False:
-            if scene_name is None: scene_name = "mm_kitchen_1b"
-            self.communicate(self.get_add_scene(scene_name=scene_name))
+        if True:
+            pass
+            #if scene_name is None: scene_name = "mm_kitchen_1b"
+            #self.communicate(self.get_add_scene(scene_name=scene_name))
         else:
             self.communicate(TDWUtils.create_empty_room(12,12))
             self.communicate(self.set_floor())
@@ -492,13 +553,36 @@ class KitchenController(Controller):
         #self.add_object("sink_cabinet_unit_wood_oak_white_chrome_composite", position = {"x":-0.2, "y":0, "z":-2.7})        
         self.add_object("cabinet_36_two_door_wood_beech_honey_composite", position = {"x":0, "y":0, "z":-2.7})
         self.add_object("cabinet_36_two_door_wood_beech_honey_composite", position = {"x":-0.93, "y":0, "z":-2.7})
-        self.add_object("carpet_rug", position = {"x":-0.3, "y":0.94, "z":-2.7},scale_factor=0.25,rotation={"x": 0, "y": 90, "z": 0})
+        self.add_object("carpet_rug", position = {"x":-0.3, "y":0.95, "z":-2.7},scale_factor=0.25,rotation={"x": 0, "y": 90, "z": 0})
         self.add_object("gas_stove", position = {"x":1.2 ,"y":0, "z":-2.8},rotation={"x": 0, "y": 90, "z": 0})
         #int(random.uniform(2, 5))
+        records = []
         for i in range(1, 5):
             t=random.choice(my_strings)
             print(t)
-            self.add_object(t, position = {"x":random.uniform(-0.75, .35) ,"y":1.1, "z":random.uniform(-2.9, -2.5)})
+            for row in table:
+                if row.startswith(t):
+                    records.append(row)
+                    break
+            self.add_object(t, position = {"x":random.uniform(-0.75, .35) ,"y":1, "z":random.uniform(-2.9, -2.5)}, scale_factor=0.6)
+
+            
+        
+        json_output = json.dumps(records)
+
+        save_json(json_output, self.output_directory + f"/scene/{name}.json")
+
+
+
+
+
+
+
+
+
+
+
+
 
 
         commands.extend([
