@@ -153,7 +153,7 @@ class MaintainController(Controller):
         self.communicate(
             {"$type": "look_at_position", "avatar_id": "a", "position": temp}
             )
-
+        self.camera.look_at(temp)
 
     def decrease_d(self):
         global d,angel2,angel1
@@ -168,7 +168,7 @@ class MaintainController(Controller):
         self.communicate(
             {"$type": "look_at_position", "avatar_id": "a", "position": temp}
             )
-
+        self.camera.look_at(temp)
 
     def increase_a1(self):
         global d,angel2,angel1
@@ -183,7 +183,7 @@ class MaintainController(Controller):
         self.communicate(
             {"$type": "look_at_position", "avatar_id": "a", "position": temp}
             )
-
+        self.camera.look_at(temp)
 
     def decrease_a1(self):
         global d,angel2,angel1
@@ -198,7 +198,7 @@ class MaintainController(Controller):
         self.communicate(
             {"$type": "look_at_position", "avatar_id": "a", "position": temp}
             )
-
+        self.camera.look_at(temp)
 
     def increase_a2(self):
         global d,angel2,angel1
@@ -213,7 +213,7 @@ class MaintainController(Controller):
         self.communicate(
             {"$type": "look_at_position", "avatar_id": "a", "position": temp}
             )
-
+        self.camera.look_at(temp)
 
         
     def decrease_a2(self):
