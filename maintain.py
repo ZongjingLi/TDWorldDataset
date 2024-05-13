@@ -3,7 +3,7 @@ from tdw.tdw_utils import TDWUtils
 from tdw.add_ons.mouse import Mouse
 from tdw.add_ons.keyboard import Keyboard
 from tdw.add_ons.third_person_camera import ThirdPersonCamera
-from tdw.output_data import OutputData, Images
+from tdw.output_data import OutputData, Images,SegmentationColors, IdPassSegmentationColors
 from tdw.add_ons.first_person_avatar import FirstPersonAvatar
 """
 Click on objects to print their IDs.
@@ -13,6 +13,8 @@ import time
 from rinarak.utils.os import save_json, load_json
 import numpy as np
 import math
+import torch
+import matplotlib.pyplot as plt
 
 # 全局变量
 d = 2
@@ -66,8 +68,9 @@ class MaintainController(Controller):
             for obj_id in load_setup:
                 if obj_id != "camera" and obj_id != "room_name":
                     self.add_object(load_setup[obj_id]["model"], load_setup[obj_id]["position"])
+                    self.object_ids.append(obj_id)
 
-            
+        
     
     def capture(self):
         
@@ -85,12 +88,46 @@ class MaintainController(Controller):
             "frequency": "always"}])
         responds = self.communicate(commands)
 
+        segmentation_colors_per_object = dict()
+        segmentation_colors_in_image = list()
+        binary_mask = torch.zeros([self.W, self.H])
+
         for i in range(len(responds)):
             r_id = OutputData.get_data_type_id(responds[i])
             if r_id == "imag":
                 image = Images(responds[i])
                 avatar_id = image.get_avatar_id()
                 TDWUtils.save_images(image, filename = f"{img_name}", output_directory = self.output_directory+ f"/img")
+
+        id_map = (torch.tensor(plt.imread(self.output_directory + f"/img/id_{img_name}.png")) * 255).int()
+
+        for i in range(len(responds)):
+            r_id = OutputData.get_data_type_id(responds[i])
+            if r_id == "segm":
+                #segm = IdPassSegmentationColors(responds[i])
+                segm = SegmentationColors(responds[i])
+                for j in range(segm.get_num()):
+                    object_id = segm.get_object_id(j)
+                    if (object_id in self.object_ids):
+                        segmentation_color = segm.get_object_color(j)
+                        segmentation_colors_per_object[object_id] = segmentation_color
+
+                        locs = torch.max(id_map == torch.tensor(segmentation_color), dim = - 1, keepdim = False).values
+
+                        binary_mask[locs] = self.object_ids.index(object_id) + 1
+                    else:
+                        print(object_id)
+                    """
+                    for i in range(self.W):
+                        for j in range(self.H):
+                            #print(image[i,j] ,torch.tensor(segmentation_color),list(image[i,j]) == list(torch.tensor(segmentation_color).int()))
+                            if list(image[i,j]) == list(torch.tensor(segmentation_color).int()):
+                                binary_mask[i,j] = self.object_ids.index(object_id)
+                    """
+        np.save(self.output_directory+ f"/img/mask_{img_name}" ,binary_mask)
+    
+
+
         self.counter += 1
         print(f"done:{img_name}")
 
@@ -182,7 +219,7 @@ class MaintainController(Controller):
     def decrease_a2(self):
         global d,angel2,angel1
         angel2 -= 1
-        temp=self.camera_location
+        temp = self.camera_location
         x = d * math.sin(math.radians(angel1)) * math.cos(math.radians(angel2))
         y = d * math.sin(math.radians(angel1)) * math.sin(math.radians(angel2))
         z = d * math.cos(math.radians(angel1))
@@ -192,13 +229,7 @@ class MaintainController(Controller):
         self.communicate(
             {"$type": "look_at_position", "avatar_id": "a", "position": temp}
             )
-
-
-
-
-        #_______________________
-
-
+        self.camera.look_at(temp)
 
 
     def move_camera_up(self):
@@ -317,13 +348,13 @@ class MaintainController(Controller):
         self.over_object_id = None
 
     def create_object(self):
-        self.hold_object_name
-        object_name = self.hold_object_name
-        pos = {"x":0.0,"y":0.0,"z":0.0}
-        print(object_name)
-        time.sleep(0.1)
-        return self.add_object(object_name, position = pos)
-    
+        #self.hold_object_name
+        #object_name = self.hold_object_name
+        #pos = {"x":0.0,"y":0.0,"z":0.0}
+        #print(object_name)
+        #time.sleep(0.1)
+        #return self.add_object(object_name, position = pos)
+        pass    
 
     def add_object(self, name, position = {"x" : 0, "y" : 0, "z" : 0}):
         object_id = self.get_unique_id()
@@ -373,6 +404,9 @@ class MaintainController(Controller):
             # Advance to the next frame.
             self.communicate([])
         self.communicate({"$type": "terminate"})
+    
+    def replace_with_equivalence(self, equivalence_table):
+        return 
 
 equivalence = {
     "plate": ["round_bowl_small_beech", "plate05"],
