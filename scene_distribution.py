@@ -451,8 +451,6 @@ class KitchenController(Controller):
         #self.add_object("sink_cabinet_unit_wood_oak_white_chrome_composite", position = {"x":-0.2, "y":0, "z":-2.7})        
         self.add_object("cabinet_36_two_door_wood_beech_honey_composite", position = {"x":0, "y":0, "z":-2.7})
         self.add_object("cabinet_36_two_door_wood_beech_honey_composite", position = {"x":-1.7, "y":0, "z":-2.7})
-
-
         self.add_object("carpet_rug", position = {"x":-0.2, "y":1.2, "z":-2.7},scale_factor=0.25,rotation={"x": 0, "y": 90, "z": 0})
 
         
