@@ -35,7 +35,7 @@ def generate_kitchen(args, split_name = "kllk"):
         scene_controller.generate_scene(str(num))
         scene_controller.reset_scene()
 
-local = True
+local = False
 dataset_dir = "/Users/melkor/Documents/datasets" if local else "datasets"
 dataset_name = "TDWRoom"
 

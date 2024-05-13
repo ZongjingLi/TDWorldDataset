@@ -12,7 +12,12 @@ Click on objects to print their IDs.
 import time
 from rinarak.utils.os import save_json, load_json
 import numpy as np
+import math
 
+# 全局变量
+d = 2
+angel1 = 0
+angel2 = 0
 class MaintainController(Controller):
     def __init__(self, name="TDWHall",split = "train",room_name = "box_room_2018", load_setup = None):
         super().__init__()
@@ -97,6 +102,105 @@ class MaintainController(Controller):
         ])
         responds = self.communicate(commands)
     
+
+    def increase_d(self):
+        global d,angel2,angel1
+        d += 1
+        temp=self.camera_location
+        x = d * math.sin(math.radians(angel1)) * math.cos(math.radians(angel2))
+        y = d * math.sin(math.radians(angel1)) * math.sin(math.radians(angel2))
+        z = d * math.cos(math.radians(angel1))
+        temp = {"x": temp["x"]+x, "y": temp["y"]+y, "z": temp["z"]+z}
+
+        self.camera_lookat=temp
+        self.communicate(
+            {"$type": "look_at_position", "avatar_id": "a", "position": temp}
+            )
+
+
+    def decrease_d(self):
+        global d,angel2,angel1
+        d -= 1
+        temp=self.camera_location
+        x = d * math.sin(math.radians(angel1)) * math.cos(math.radians(angel2))
+        y = d * math.sin(math.radians(angel1)) * math.sin(math.radians(angel2))
+        z = d * math.cos(math.radians(angel1))
+        temp = {"x": temp["x"]+x, "y": temp["y"]+y, "z": temp["z"]+z}
+
+        self.camera_lookat=temp
+        self.communicate(
+            {"$type": "look_at_position", "avatar_id": "a", "position": temp}
+            )
+
+
+    def increase_a1(self):
+        global d,angel2,angel1
+        angel1 += 1
+        temp=self.camera_location
+        x = d * math.sin(math.radians(angel1)) * math.cos(math.radians(angel2))
+        y = d * math.sin(math.radians(angel1)) * math.sin(math.radians(angel2))
+        z = d * math.cos(math.radians(angel1))
+        temp = {"x": temp["x"]+x, "y": temp["y"]+y, "z": temp["z"]+z}
+
+        self.camera_lookat=temp
+        self.communicate(
+            {"$type": "look_at_position", "avatar_id": "a", "position": temp}
+            )
+
+
+    def decrease_a1(self):
+        global d,angel2,angel1
+        angel1 -= 1
+        temp=self.camera_location
+        x = d * math.sin(math.radians(angel1)) * math.cos(math.radians(angel2))
+        y = d * math.sin(math.radians(angel1)) * math.sin(math.radians(angel2))
+        z = d * math.cos(math.radians(angel1))
+        temp = {"x": temp["x"]+x, "y": temp["y"]+y, "z": temp["z"]+z}
+
+        self.camera_lookat=temp
+        self.communicate(
+            {"$type": "look_at_position", "avatar_id": "a", "position": temp}
+            )
+
+
+    def increase_a2(self):
+        global d,angel2,angel1
+        angel2 += 1
+        temp=self.camera_location
+        x = d * math.sin(math.radians(angel1)) * math.cos(math.radians(angel2))
+        y = d * math.sin(math.radians(angel1)) * math.sin(math.radians(angel2))
+        z = d * math.cos(math.radians(angel1))
+        temp = {"x": temp["x"]+x, "y": temp["y"]+y, "z": temp["z"]+z}
+
+        self.camera_lookat=temp
+        self.communicate(
+            {"$type": "look_at_position", "avatar_id": "a", "position": temp}
+            )
+
+
+        
+    def decrease_a2(self):
+        global d,angel2,angel1
+        angel2 -= 1
+        temp=self.camera_location
+        x = d * math.sin(math.radians(angel1)) * math.cos(math.radians(angel2))
+        y = d * math.sin(math.radians(angel1)) * math.sin(math.radians(angel2))
+        z = d * math.cos(math.radians(angel1))
+        temp = {"x": temp["x"]+x, "y": temp["y"]+y, "z": temp["z"]+z}
+        
+        self.camera_lookat=temp
+        self.communicate(
+            {"$type": "look_at_position", "avatar_id": "a", "position": temp}
+            )
+
+
+
+
+        #_______________________
+
+
+
+
     def move_camera_up(self):
         self.camera_location["y"] += 0.1
         self.camera.teleport(position = self.camera_location)
@@ -190,7 +294,16 @@ class MaintainController(Controller):
         self.keyboard.listen(key="G", function = self.create_object)
 
         self.keyboard.listen(key="L", function = self.save)
-    
+
+
+        self.keyboard.listen(key="I", function = self.increase_d)
+        self.keyboard.listen(key="O", function = self.decrease_d)
+        self.keyboard.listen(key="K", function = self.increase_a1)
+        self.keyboard.listen(key="J", function = self.decrease_a1)
+        self.keyboard.listen(key="M", function = self.increase_a2)
+        self.keyboard.listen(key="N", function = self.decrease_a2)
+
+
     def reset_objects(self):self.object_ids = []
 
     def delete_object(self):
@@ -278,5 +391,6 @@ mc = MaintainController(load_setup=load_json("datasets/TDWHall/scene_setup.json"
 #mc.add_object(np.random.choice(equivalence["plate"]), position={"x":0.3,"y":0.9,"z":-.1})
 #mc.add_object(np.random.choice(equivalence["small_table"]), position={"x":0.0,"y":0.0,"z":-0.1})
 #mc.add_object("small_table_green_marble", position={"x":1.5,"y":0.0,"z":-.4})
-mc.add_object("cabinet_24_two_door_wood_beech_honey_composite", position={"x":-1.0,"y":0.0,"z":1.0})
+
+
 mc.run()
