@@ -16,6 +16,12 @@ import math
 import torch
 import matplotlib.pyplot as plt
 
+equivalence = {
+    "moveable":["apple", "orange","banana_fix2", "jug01","b04_bowl_smooth"],
+    "carpet": ["carpet_rug", "blue_rug"],
+    "bigger": ["blue_satchal", "b03_basket","bakerparisfloorlamp03"]
+}
+
 # 全局变量
 d = 2
 angel1 = 0
@@ -23,6 +29,7 @@ angel2 = 0
 class MaintainController(Controller):
     def __init__(self, name="TDWHall",split = "train",room_name = "box_room_2018", load_setup = None):
         super().__init__()
+        self.split = split
         self.name = name
         self.W, self.H = 512,512
         self.object_ids = []
@@ -67,8 +74,9 @@ class MaintainController(Controller):
         if load_setup is not None:
             for obj_id in load_setup:
                 if obj_id != "camera" and obj_id != "room_name":
-                    self.add_object(load_setup[obj_id]["model"], load_setup[obj_id]["position"])
-                    self.object_ids.append(obj_id)
+                    self.add_object(load_setup[obj_id]["model"], load_setup[obj_id]["position"], obj_id = int(obj_id))
+                    #self.object_ids.append(obj_id)
+                    
 
         
     
@@ -202,7 +210,7 @@ class MaintainController(Controller):
 
     def increase_a2(self):
         global d,angel2,angel1
-        angel2 += 1
+        angel2 += 10
         temp=self.camera_location
         x = d * math.sin(math.radians(angel1)) * math.cos(math.radians(angel2))
         y = d * math.sin(math.radians(angel1)) * math.sin(math.radians(angel2))
@@ -334,16 +342,51 @@ class MaintainController(Controller):
         self.keyboard.listen(key="M", function = self.increase_a2)
         self.keyboard.listen(key="N", function = self.decrease_a2)
 
+        self.keyboard.listen(key="O", function = self.replacement)
+        self.keyboard.listen(key="P", function = self.generate)
+
+    def replacement(self):
+        names = []
+        pos = []
+        ids = []
+        for i in range(len(self.object_ids)):
+            model_name = self.models[i]
+            model_pos = self.positions[i]
+            model_id = self.object_ids[i]
+            if model_id is not None:
+
+                rand_model_name = model_name
+                for key in equivalence:
+                    rand_class = equivalence[key]
+                    if model_name in rand_class:
+                        rand_model_name = np.random.choice(rand_class)
+                names.append(rand_model_name)
+                pos.append(model_pos)
+                ids.append(model_id)
+        while len(self.object_ids) > 0:
+            self.delete_object(self.object_ids[0])
+        for i in range(len(names)):
+            self.add_object(names[i], pos[i], ids[i])
+
+    
+    def generate(self, num = 3):
+        for i in range(num):
+            self.replacement()
+            self.save(f"datasets/{self.name}/{self.split}/scene/{self.counter}.json")
+            self.capture()
+        return 
 
     def reset_objects(self):self.object_ids = []
 
-    def delete_object(self):
-        print(f"try to delete object: {self.over_object_id}")
-        idx = self.locate_object(self.over_object_id)
-        self.object_ids[idx] = None
-        self.positions[idx] = None
+    def delete_object(self, obj_id = None):
+        
+        if obj_id is None: obj_id = self.over_object_id
+        #print(f"try to delete object: {obj_id}")
+        idx = self.locate_object(obj_id)
+        self.object_ids.remove(obj_id)
+        self.positions.remove(self.positions[idx])
         self.communicate([
-            {"$type": "destroy_object", "id": self.over_object_id}
+            {"$type": "destroy_object", "id": obj_id}
         ])
         self.over_object_id = None
 
@@ -356,8 +399,8 @@ class MaintainController(Controller):
         #return self.add_object(object_name, position = pos)
         pass    
 
-    def add_object(self, name, position = {"x" : 0, "y" : 0, "z" : 0}):
-        object_id = self.get_unique_id()
+    def add_object(self, name, position = {"x" : 0, "y" : 0, "z" : 0}, obj_id = None):
+        object_id = self.get_unique_id() if obj_id is None  else obj_id
         self.communicate([self.get_add_object(name, object_id = object_id, position = position)])
         
         self.models.append(name)
@@ -373,7 +416,7 @@ class MaintainController(Controller):
         #])
         return idx
 
-    def save(self):
+    def save(self, save_name = None):
         scene_json = {}
         for i,obj_id in enumerate(self.object_ids):
             if obj_id is not None:
@@ -386,8 +429,8 @@ class MaintainController(Controller):
             "look_at": self.camera_lookat,
             }
         scene_json["room_name"] = self.room_name
-        print(scene_json)
-        save_json(scene_json,f"datasets/{self.name}/scene_setup.json")
+        if save_name is None:save_name = f"datasets/{self.name}/scene_setup.json"
+        save_json(scene_json, save_name)
     
     def run(self):
         done = False
@@ -408,23 +451,15 @@ class MaintainController(Controller):
     def replace_with_equivalence(self, equivalence_table):
         return 
 
-equivalence = {
-    "plate": ["round_bowl_small_beech", "plate05"],
-    "small_table": ["dining_room_table", "small_table_green_marble","lg_table_white"],
-    "painting":["elf_painting","framed_painting","its_about_time_painting"],
-    "round_table":["enzo_industrial_loft_pine_metal_round_dining_table"],
-    "rug": ["flat_woven_rug", "purple_woven_rug"],
-    "bench":["glass_table", "quatre_dining_table"]
-}
 
-mc = MaintainController(load_setup=load_json("datasets/TDWHall/scene_setup.json"))
+
+mc = MaintainController(load_setup=load_json("datasets/scene_setup.json"))
 #mc = MaintainController()
 #mc.add_object("rh10", position={"x":0.1,"y":0.0,"z":1.0})
-#mc.add_object("jug01", position={"x":0.1,"y":0.9,"z":-.1})
-#mc.add_object("apple", position={"x":0.3,"y":0.9,"z":-.1})
+#mc.add_object("b04_03_077", position={"x":-0.3,"y":0.3,"z":-.4})
+#mc.add_object("cgaxis_models_10_11_vray", position={"x":0.3,"y":0.9,"z":-.1})
 #mc.add_object(np.random.choice(equivalence["plate"]), position={"x":0.3,"y":0.9,"z":-.1})
 #mc.add_object(np.random.choice(equivalence["small_table"]), position={"x":0.0,"y":0.0,"z":-0.1})
-#mc.add_object("small_table_green_marble", position={"x":1.5,"y":0.0,"z":-.4})
 
 
 mc.run()
