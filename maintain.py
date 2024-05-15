@@ -238,6 +238,7 @@ class MaintainController(Controller):
             {"$type": "look_at_position", "avatar_id": "a", "position": temp}
             )
         self.camera.look_at(temp)
+    
 
 
     def move_camera_up(self):
@@ -314,6 +315,15 @@ class MaintainController(Controller):
             self.camera_location["z"] -= 0.1
             self.camera.teleport(position=self.camera_location)
     
+    def rotate_object(self):
+        if self.over_object_id is not None:
+            obj_idx = self.locate_object(self.over_object_id)
+            self.rotations[obj_idx] += 1
+            self.communicate(
+            {"$type": "rotate_object", "id": self.over_object_id, "rotation": self.rotations[obj_idx]}
+            )
+        
+
     def reset_cursor(self): self.over_object_id = None
 
     def setup_keyboard(self):
@@ -461,5 +471,9 @@ mc = MaintainController(load_setup=load_json("datasets/scene_setup.json"))
 #mc.add_object(np.random.choice(equivalence["plate"]), position={"x":0.3,"y":0.9,"z":-.1})
 #mc.add_object(np.random.choice(equivalence["small_table"]), position={"x":0.0,"y":0.0,"z":-0.1})
 
+
+
+
+#
 
 mc.run()
