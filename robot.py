@@ -28,11 +28,11 @@ for record in librarian.records:print(record.name)
 
 #c.communicate(c.get_add_scene(scene_name="tdw_room"))
 
-commands = []
-theta = np.random.random() * 2 * np.pi
-scale = np.random.random() * 0.2 + 1.8
-commands.extend(TDWUtils.create_avatar(position={"x": np.cos(theta) * scale, "y": 1.32, "z": np.sin(theta) * scale},
-                                       avatar_id="a",
-                                       look_at={"x": 0.0, "y": 0.4, "z": 0.0}))
-c.communicate(commands)
+#commands = []
+#theta = np.random.random() * 2 * np.pi
+#scale = np.random.random() * 0.2 + 1.8
+#commands.extend(TDWUtils.create_avatar(position={"x": np.cos(theta) * scale, "y": 1.32, "z": np.sin(theta) * scale},
+#                                       avatar_id="a",
+#                                       look_at={"x": 0.0, "y": 0.4, "z": 0.0}))
+#c.communicate(commands)
 

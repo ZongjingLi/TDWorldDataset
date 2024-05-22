@@ -5,6 +5,7 @@ from tdw.add_ons.keyboard import Keyboard
 from tdw.add_ons.third_person_camera import ThirdPersonCamera
 from tdw.output_data import OutputData, Images,SegmentationColors, IdPassSegmentationColors
 from tdw.add_ons.first_person_avatar import FirstPersonAvatar
+from tdw.add_ons.interior_scene_lighting import InteriorSceneLighting
 """
 Click on objects to print their IDs.
 
@@ -17,23 +18,46 @@ import torch
 import matplotlib.pyplot as plt
 
 equivalence = {
-    "moveable":["apple", "orange","banana_fix2", "jug01","b04_bowl_smooth"],
+    "":["apple", "orange","banana_fix2", "jug01","b04_bowl_smooth"],
     "carpet": ["carpet_rug", "blue_rug"],
-    "bigger": ["blue_satchal", "b03_basket","bakerparisfloorlamp03"]
+    "bigger": ["blue_satchal", "b03_basket","bakerparisfloorlamp03"],
+    "plate": ["baking_sheet10",],
+    "cabinet": ["cabinet_36_two_door_wood_oak_white_composite", ],
+    "table": [ "b05_table_new", "small_table_green_marble",  "dining_room_table"],
+    "chair": ["chair_willisau_riale", "green_side_chair", "chair_thonet_marshall"],
+    "vase": ["vase_05", "kettle", "vase_01", "vase_02", "vase_03"]
 }
 
+movable_items = ["vase_05", "kettle", "apple", "orange","banana_fix2", "jug01","b04_bowl_smooth", "baking_sheet10","fork1",
+                 "glass1", "knife1",   "b04_wineglass", "jug03",  "pan1","spoon1", "vase_05", "kettle", "vase_01", "vase_02", "vase_03"]
+
+immoveable_items = [ "b05_table_new", "small_table_green_marble",  "dining_room_table", "chair_willisau_riale", "green_side_chair", "chair_thonet_marshall", "carpet_rug", "blue_rug"]
+
+
+asset_map = {
+    "vase_05": {"color": "white"}
+}
+
+possible_kithens = ["mm_kitchen_2b", "mm_kitchen_1b"]
+
+random_seed = 12
 # 全局变量
 d = 2
 angel1 = 0
 angel2 = 0
+output_root = "/Users/melkor/Documents/"
 class MaintainController(Controller):
-    def __init__(self, name="TDWHall",split = "train",room_name = "box_room_2018", load_setup = None):
+    def __init__(self, name="TDWHall",split = "train",room_name = "box_room_2018", load_setup = None, start_count = 0):
         super().__init__()
+
+        self.output_root = output_root
         self.split = split
         self.name = name
-        self.W, self.H = 512,512
+        self.W, self.H = 128,128
+        
         self.object_ids = []
         self.positions = []
+        self.rotations = []
         self.models = []
 
         self.room_name = room_name
@@ -54,7 +78,13 @@ class MaintainController(Controller):
         self.camera = camera
         self.mouse = Mouse(avatar_id="a")
         self.keyboard = Keyboard()
-        self.add_ons.extend([camera, self.mouse, self.keyboard])
+
+        if "Kitchen" in name:
+            self.interior_scene_lighting = InteriorSceneLighting(rng=np.random.RandomState(random_seed))
+
+            self.add_ons.extend([camera, self.mouse, self.keyboard, self.interior_scene_lighting])
+        else:
+            self.add_ons.extend([camera, self.mouse, self.keyboard])
         self.setup_keyboard()
         
         self.over_object_id = None
@@ -67,15 +97,18 @@ class MaintainController(Controller):
         ]
         self.hold_object_name = "small_table_green_marble"
         self.basic_setup()
-        self.counter = 0
+        self.counter = start_count
 
-        self.output_directory = f"datasets/{name}/{split}"
+        self.output_directory = self.output_root + f"datasets/{name}/{split}"
 
         if load_setup is not None:
             for obj_id in load_setup:
                 if obj_id != "camera" and obj_id != "room_name":
-                    self.add_object(load_setup[obj_id]["model"], load_setup[obj_id]["position"], obj_id = int(obj_id))
+                    rotate = {"x": 0, "y":0, "z":0} if "rotation" not in load_setup[obj_id] else load_setup[obj_id]["rotation"]
+                    self.add_object(load_setup[obj_id]["model"], load_setup[obj_id]["position"], obj_id = int(obj_id), rotation = rotate)
                     #self.object_ids.append(obj_id)
+
+        print("scene created, all objects loaded")
                     
 
         
@@ -114,6 +147,8 @@ class MaintainController(Controller):
             if r_id == "segm":
                 #segm = IdPassSegmentationColors(responds[i])
                 segm = SegmentationColors(responds[i])
+                object_id_sequence = []
+                obj_counter = 0
                 for j in range(segm.get_num()):
                     object_id = segm.get_object_id(j)
                     if (object_id in self.object_ids):
@@ -122,9 +157,12 @@ class MaintainController(Controller):
 
                         locs = torch.max(id_map == torch.tensor(segmentation_color), dim = - 1, keepdim = False).values
 
-                        binary_mask[locs] = self.object_ids.index(object_id) + 1
+                        binary_mask[locs] = obj_counter
+                        obj_counter += 1
+                        object_id_sequence.append(object_id)
+
                     else:
-                        print(object_id)
+                        print("not found:",object_id)
                     """
                     for i in range(self.W):
                         for j in range(self.H):
@@ -132,8 +170,8 @@ class MaintainController(Controller):
                             if list(image[i,j]) == list(torch.tensor(segmentation_color).int()):
                                 binary_mask[i,j] = self.object_ids.index(object_id)
                     """
-        np.save(self.output_directory+ f"/img/mask_{img_name}" ,binary_mask)
-    
+        np.save(self.output_directory + f"/img/mask_{img_name}" ,binary_mask)
+        np.save(self.output_directory + f"/scene/ids_{img_name}", object_id_sequence)
 
 
         self.counter += 1
@@ -147,15 +185,14 @@ class MaintainController(Controller):
         ])
         responds = self.communicate(commands)
     
-
     def increase_d(self):
         global d,angel2,angel1
         d += 1
-        temp=self.camera_location
+        temp=self.camera_lookat
         x = d * math.sin(math.radians(angel1)) * math.cos(math.radians(angel2))
         y = d * math.sin(math.radians(angel1)) * math.sin(math.radians(angel2))
         z = d * math.cos(math.radians(angel1))
-        temp = {"x": temp["x"]+x, "y": temp["y"]+y, "z": temp["z"]+z}
+        temp = {"x": temp["x"]+0, "y": temp["y"]+0.1, "z": temp["z"]+0.}
 
         self.camera_lookat=temp
         self.communicate(
@@ -166,11 +203,11 @@ class MaintainController(Controller):
     def decrease_d(self):
         global d,angel2,angel1
         d -= 1
-        temp=self.camera_location
+        temp=self.camera_lookat
         x = d * math.sin(math.radians(angel1)) * math.cos(math.radians(angel2))
         y = d * math.sin(math.radians(angel1)) * math.sin(math.radians(angel2))
         z = d * math.cos(math.radians(angel1))
-        temp = {"x": temp["x"]+x, "y": temp["y"]+y, "z": temp["z"]+z}
+        temp = {"x": temp["x"]+0, "y": temp["y"]-0.1, "z": temp["z"]+0}
 
         self.camera_lookat=temp
         self.communicate(
@@ -181,11 +218,11 @@ class MaintainController(Controller):
     def increase_a1(self):
         global d,angel2,angel1
         angel1 += 1
-        temp=self.camera_location
+        temp=self.camera_lookat
         x = d * math.sin(math.radians(angel1)) * math.cos(math.radians(angel2))
         y = d * math.sin(math.radians(angel1)) * math.sin(math.radians(angel2))
         z = d * math.cos(math.radians(angel1))
-        temp = {"x": temp["x"]+x, "y": temp["y"]+y, "z": temp["z"]+z}
+        temp = {"x": temp["x"]+0.1, "y": temp["y"]+0., "z": temp["z"]+0.}
 
         self.camera_lookat=temp
         self.communicate(
@@ -196,11 +233,11 @@ class MaintainController(Controller):
     def decrease_a1(self):
         global d,angel2,angel1
         angel1 -= 1
-        temp=self.camera_location
+        temp=self.camera_lookat
         x = d * math.sin(math.radians(angel1)) * math.cos(math.radians(angel2))
         y = d * math.sin(math.radians(angel1)) * math.sin(math.radians(angel2))
         z = d * math.cos(math.radians(angel1))
-        temp = {"x": temp["x"]+x, "y": temp["y"]+y, "z": temp["z"]+z}
+        temp = {"x": temp["x"]-0.1, "y": temp["y"]+0, "z": temp["z"]+0.}
 
         self.camera_lookat=temp
         self.communicate(
@@ -211,35 +248,32 @@ class MaintainController(Controller):
     def increase_a2(self):
         global d,angel2,angel1
         angel2 += 10
-        temp=self.camera_location
+        temp=self.camera_lookat
         x = d * math.sin(math.radians(angel1)) * math.cos(math.radians(angel2))
         y = d * math.sin(math.radians(angel1)) * math.sin(math.radians(angel2))
         z = d * math.cos(math.radians(angel1))
-        temp = {"x": temp["x"]+x, "y": temp["y"]+y, "z": temp["z"]+z}
+        temp = {"x": temp["x"]+0., "y": temp["y"]+0., "z": temp["z"]+0.1}
 
         self.camera_lookat=temp
         self.communicate(
             {"$type": "look_at_position", "avatar_id": "a", "position": temp}
             )
         self.camera.look_at(temp)
-
-        
+  
     def decrease_a2(self):
         global d,angel2,angel1
         angel2 -= 1
-        temp = self.camera_location
+        temp = self.camera_lookat
         x = d * math.sin(math.radians(angel1)) * math.cos(math.radians(angel2))
         y = d * math.sin(math.radians(angel1)) * math.sin(math.radians(angel2))
         z = d * math.cos(math.radians(angel1))
-        temp = {"x": temp["x"]+x, "y": temp["y"]+y, "z": temp["z"]+z}
+        temp = {"x": temp["x"]+0., "y": temp["y"]+0., "z": temp["z"]-0.1}
         
         self.camera_lookat=temp
         self.communicate(
             {"$type": "look_at_position", "avatar_id": "a", "position": temp}
             )
-        self.camera.look_at(temp)
-    
-
+        self.camera.look_at(temp)    
 
     def move_camera_up(self):
         self.camera_location["y"] += 0.1
@@ -318,9 +352,10 @@ class MaintainController(Controller):
     def rotate_object(self):
         if self.over_object_id is not None:
             obj_idx = self.locate_object(self.over_object_id)
-            self.rotations[obj_idx] += 1
+            self.rotations[obj_idx]["y"] += 90
+            self.rotations[obj_idx]["y"] %= 360
             self.communicate(
-            {"$type": "rotate_object", "id": self.over_object_id, "rotation": self.rotations[obj_idx]}
+            {"$type": "rotate_object_to_euler_angles", "id": self.over_object_id, "euler_angles": self.rotations[obj_idx]}
             )
         
 
@@ -340,13 +375,12 @@ class MaintainController(Controller):
         self.keyboard.listen(key="C", function = self.capture)
 
         self.keyboard.listen(key="T", function = self.delete_object)
-        self.keyboard.listen(key="G", function = self.create_object)
 
-        self.keyboard.listen(key="L", function = self.save)
+        self.keyboard.listen(key="H", function = self.save)
 
 
-        self.keyboard.listen(key="I", function = self.increase_d)
-        self.keyboard.listen(key="O", function = self.decrease_d)
+        self.keyboard.listen(key="U", function = self.increase_d)
+        self.keyboard.listen(key="I", function = self.decrease_d)
         self.keyboard.listen(key="K", function = self.increase_a1)
         self.keyboard.listen(key="J", function = self.decrease_a1)
         self.keyboard.listen(key="M", function = self.increase_a2)
@@ -354,15 +388,23 @@ class MaintainController(Controller):
 
         self.keyboard.listen(key="O", function = self.replacement)
         self.keyboard.listen(key="P", function = self.generate)
+        self.keyboard.listen(key="R", function = self.rotate_object)
+    
+
 
     def replacement(self):
+        
         names = []
         pos = []
         ids = []
+        rots = []
+        print(self.object_ids)
         for i in range(len(self.object_ids)):
             model_name = self.models[i]
             model_pos = self.positions[i]
             model_id = self.object_ids[i]
+            model_rot = self.rotations[i]
+            #print(model_name, model_id, "saved")
             if model_id is not None:
 
                 rand_model_name = model_name
@@ -373,16 +415,22 @@ class MaintainController(Controller):
                 names.append(rand_model_name)
                 pos.append(model_pos)
                 ids.append(model_id)
+                rots.append(model_rot)
+
         while len(self.object_ids) > 0:
             self.delete_object(self.object_ids[0])
         for i in range(len(names)):
-            self.add_object(names[i], pos[i], ids[i])
+            #print("create:", names[i], ids[i])
+            self.add_object(names[i], pos[i], ids[i], rotation = rots[i])
 
+    def mutaion(self, pos):
+        return
     
-    def generate(self, num = 3):
+    def generate(self, num = 1000):
+        self.interior_scene_lighting.reset(rng= np.random.RandomState(np.random.randint(1,5)))
         for i in range(num):
             self.replacement()
-            self.save(f"datasets/{self.name}/{self.split}/scene/{self.counter}.json")
+            self.save(self.output_root + f"datasets/{self.name}/{self.split}/scene/{self.counter}.json")
             self.capture()
         return 
 
@@ -400,21 +448,18 @@ class MaintainController(Controller):
         ])
         self.over_object_id = None
 
-    def create_object(self):
-        #self.hold_object_name
-        #object_name = self.hold_object_name
-        #pos = {"x":0.0,"y":0.0,"z":0.0}
-        #print(object_name)
-        #time.sleep(0.1)
-        #return self.add_object(object_name, position = pos)
-        pass    
 
-    def add_object(self, name, position = {"x" : 0, "y" : 0, "z" : 0}, obj_id = None):
-        object_id = self.get_unique_id() if obj_id is None  else obj_id
-        self.communicate([self.get_add_object(name, object_id = object_id, position = position)])
+    def add_object(self, name, position = {"x" : 0, "y" : 0, "z" : 0}, obj_id = None, rotation = None):
+        object_id = obj_id#self.get_unique_id() if obj_id is None  else obj_id
+        rotation = rotation if rotation is not None else {"x":0, "y":0, "z":0} 
+
+        self.communicate([self.get_add_object(name, object_id = object_id, position = position, rotation = rotation)])
         
+        #print("add",object_id)
+
         self.models.append(name)
         self.positions.append(position)
+        self.rotations.append(rotation)
         self.object_ids.append(object_id)
 
     def locate_object(self, object_id):
@@ -427,19 +472,23 @@ class MaintainController(Controller):
         return idx
 
     def save(self, save_name = None):
+        print("saved")
         scene_json = {}
         for i,obj_id in enumerate(self.object_ids):
             if obj_id is not None:
                 scene_json[obj_id] = {
                     "model": self.models[i],
                     "position":self.positions[i],
+                    "rotation": self.rotations[i],
+                    "movable": self.models[i] in movable_items
                 }
         scene_json["camera"] = {
             "position":self.camera_location,
             "look_at": self.camera_lookat,
             }
         scene_json["room_name"] = self.room_name
-        if save_name is None:save_name = f"datasets/{self.name}/scene_setup.json"
+        if save_name is None:save_name = self.output_root + f"datasets/{self.name}/scene_setup.json"
+        print(save_name)
         save_json(scene_json, save_name)
     
     def run(self):
@@ -463,17 +512,22 @@ class MaintainController(Controller):
 
 
 
-mc = MaintainController(load_setup=load_json("datasets/scene_setup.json"))
-#mc = MaintainController()
+#mc = MaintainController(load_setup=load_json( "datasets/scene_setup_kitchen2.json"), name="TDWKitchen",start_count = 0)
+#mc = MaintainController(\
+#    load_setup=load_json(output_root + "datasets/TDWKitchen/scene_setup.json"),\
+#    name="TDWOutroom", room_name ="iceland_beach")
+
+mc = MaintainController(load_setup=load_json(output_root + "datasets/TDWKitchen/scene_setup.json"), name="TDWKitchen", start_count = 0)
+
+#mc = MaintainController(load_setup=load_json(output_root + "datasets/RealisticKitchen/scene_setup.json"), name="TDWKitchen", start_count = 0)
+
+#mc = MaintainController(load_setup=load_json("/Users/melkor/Documents/datasets/TDWHall/scene_setup.json"), name="TDWHall")
+#mc = MaintainController(room_name ="tdwroom")
 #mc.add_object("rh10", position={"x":0.1,"y":0.0,"z":1.0})
 #mc.add_object("b04_03_077", position={"x":-0.3,"y":0.3,"z":-.4})
 #mc.add_object("cgaxis_models_10_11_vray", position={"x":0.3,"y":0.9,"z":-.1})
 #mc.add_object(np.random.choice(equivalence["plate"]), position={"x":0.3,"y":0.9,"z":-.1})
 #mc.add_object(np.random.choice(equivalence["small_table"]), position={"x":0.0,"y":0.0,"z":-0.1})
-
-
-
-
-#
+#suburb_scene_2018 suburb_scene_2023
 
 mc.run()

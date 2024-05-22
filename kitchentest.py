@@ -9,9 +9,11 @@ from tdw.add_ons.keyboard import Keyboard
 
 path = "datasets/RealisticKitchen"
 proc_gen_kitchen = ProcGenKitchen()
-random_seed = 32
+random_seed = 12
 proc_gen_kitchen.create(rng=np.random.RandomState(random_seed))
+print(proc_gen_kitchen.commands)
 interior_scene_lighting = InteriorSceneLighting(rng=np.random.RandomState(random_seed))
+
 
 loc = {"x": -1, "y": 1.8, "z": 2}
 
@@ -35,7 +37,7 @@ def a_func():
     loc["z"] += 0.1
     camera.teleport(loc)
 def s_func():
-    loc["y"] -= 0.1
+    loc["z"] -= 0.1
     camera.teleport(loc)
 def e_func():
     loc["y"] += 0.1
@@ -45,11 +47,11 @@ def d_func():
     camera.teleport(loc)
 
 keyboard.listen("W", w_func)
-keyboard.listen("z", z_func)
-keyboard.listen("a", a_func)
-keyboard.listen("s", s_func)
-keyboard.listen("e", e_func)
-keyboard.listen("d", d_func)
+keyboard.listen("Z", z_func)
+keyboard.listen("A", a_func)
+keyboard.listen("S", s_func)
+keyboard.listen("E", e_func)
+keyboard.listen("D", d_func)
 
 c.communicate([{"$type": "set_screen_size",
                 "width": 512,
@@ -59,11 +61,13 @@ done = False
 while not done:
     # End the simulation.
     if mouse.right_button_pressed:
-        c.reset_cursor()
+        #c.reset_cursor()
+        pass
     # We clicked on an object.
     elif mouse.left_button_pressed and mouse.mouse_is_over_object:
         print(mouse.mouse_over_object_id)
-        c.over_object_id = mouse.mouse_over_object_id
-        c.locate_object(c.over_object_id)
+        responds = c.communicate()
+       # c.over_object_id = mouse.mouse_over_object_id
+        #c.locate_object(c.over_object_id)
     c.communicate([])
 c.communicate({"$type": "terminate"})

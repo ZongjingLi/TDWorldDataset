@@ -1,0 +1,57 @@
+(domain Achrus-ElbonHold)
+(:type
+    img - vector[float,128,128,3]
+    position - vector[float,2]
+    color - vector[float, 64]
+    category
+)
+(:predicate
+    object ?x-img -> vector[float,100]
+    pos ?x-object -> vector[float,3]
+
+    movable ?x-object -> boolean
+    moving ?x-object -> boolean
+
+
+    red ?x-color -> boolean
+    green ?x-color -> boolean
+    white ?x-color -> boolean
+    black ?x-color -> boolean
+    brown ?x-color -> boolean
+    orange ?x-color -> boolean
+    yellow ?x-color -> boolean
+    not-any-color ?x-color -> boolean
+
+    wooden ?x-shape -> boolean
+    plastic ?x-shape -> boolean
+    metal ?x-shape -> boolean
+    pure ?x-shape -> boolean
+
+    left ?x-object -> boolean
+)
+(:derived
+    is-good ?x-color expr: (??f ?x)
+)
+(:constraint
+    (color: red blue green not-any-color)
+    (shape: square circle diamond not-any-shape)
+)
+
+(:action
+    (name: make_motion
+        parameters: ?o1
+        precondition: (true)
+        effect: (
+            assign (moving ?o1) (movable ?o1)
+        )
+    )
+
+    (name: find-white
+        parameters: ?o1
+        precondition: (true)
+        effect: (
+            assign (moving ?o1) (movable ?o1)
+        )
+    )
+
+)
