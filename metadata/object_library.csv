@@ -1,3 +1,2 @@
-ObjectName,Type,Color,Texture,Img
-chair,composite,brown,wooden,
-Jug,simple,blue,plastic,
+object,movable,category,color,shape,simple
+yellow_side_chair, color,chair,n,y, true
