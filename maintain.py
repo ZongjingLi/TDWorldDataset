@@ -53,7 +53,7 @@ class MaintainController(Controller):
         self.output_root = output_root
         self.split = split
         self.name = name
-        self.W, self.H = 128,128
+        self.W, self.H = 512,512
         
         self.object_ids = []
         self.positions = []
