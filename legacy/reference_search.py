@@ -2,7 +2,7 @@ from rinarak.domain import load_domain_string, Domain
 from rinarak.knowledge.executor import CentralExecutor
 domain_parser = Domain("base.grammar")
 from dataclasses import dataclass
-from primitives import *
+from legacy.primitives import *
 import sys
 
 meta_domain_str = ""
