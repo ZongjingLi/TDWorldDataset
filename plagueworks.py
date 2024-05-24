@@ -45,6 +45,10 @@ class PlagueWorksController(Controller):
                  port = 1932):
         super().__init__(port = port)
         self.room_name = "box_room_2018"
+        if load_scene is not None:
+            if isinstance(load_scene, str): load_scene = load_json(load_scene)
+            assert isinstance(load_scene, dict), "input load scene is not a valid"
+            if "room_name" in load_scene: self.room_name = load_scene["room_name"]
         self.W, self.H = resolution
         self.moveables = []
         self.immoveables = []
@@ -80,9 +84,33 @@ class PlagueWorksController(Controller):
         self.counter = counter
 
         if load_scene is not None:
-            assert isinstance(load_scene, dict), "input load scene is not a valid "
+            assert isinstance(load_scene, dict), "input load scene is not a valid"
+            objects = load_scene["objects"]
+            
+            for object_id in objects:
+                tdw_object = objects[object_id]
+                self.add_object(
+                    tdw_object["model"],
+                    tdw_object["position"],
+                    tdw_object["rotation"],
+                    id = int(object_id)
+                    )
+        self.scene_save_path = self.output_directory + "/scene_setup.json"
 
         print("PlageWorks environment is created, all objects loaded.")
+    
+    def save_scene_setup(self, path = None):
+        if path is None: path = self.scene_save_path
+        scene_setup = {}
+        object_infos = []
+        for object_id in self.object_ids:
+            object_infos[object_id] ={
+                "model": "vase_01",
+                "position": {"x":0,"y":0,"z":0},
+                "rotation": {"x":1.,"y":0,"z":1.},
+            }
+        scene_setup["objects"] = object_infos
+        save_json(scene_setup, path)
 
     def basic_setup(self):
         commands = []
@@ -205,11 +233,18 @@ class PlagueWorksController(Controller):
         self.communicate({"$type": "terminate"})
 
 if __name__ == "__main__":
+    dataset_name = "Plagueworks"
+    split = "train"
     dataset_dir = "/Users/melkor/Documents/datasets/{}"
-    controller = PlagueWorksController(split = "train", name = "Plagueworks", output_directory = dataset_dir, load_scene = None)
+    controller = PlagueWorksController(
+        split = split,
+        name = dataset_name,
+        output_directory = dataset_dir,
+        load_scene = dataset_dir.format(dataset_name) + f"/{split}/scene_setup.json")
     #controller.capture()
-    controller.add_object("vase_01")
-    controller.add_object("vase_05", position={"x":0.5, "y":0.0, "z":0.2})
+    #controller.add_object("vase_01")
+    #controller.add_object("vase_05", position={"x":0.5, "y":0.0, "z":0.2})
+
     controller.run()
    
     #controller.capture()
