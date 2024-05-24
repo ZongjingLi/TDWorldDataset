@@ -1,0 +1,47 @@
+
+body {
+    background: #003b5b;
+}
+
+h1 {
+    text-align: center;
+    color:rgb(1, 151, 101)
+}
+
+.container {
+    background: #eee;
+    height: 32em;
+    width: 80%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.movable {
+    font-family: sans-serif;
+    height:  8em;
+    width: 8em;
+    padding: 10px;
+
+    border: 1px solid #999;
+    border-radius: 3px;
+    background: #fff;
+    box-shadow: 0 1px 2px 1px rgb(0 0 0 /0.2)
+}
+
+.draggable {
+    background: hsl(174, 80%, 45%);
+    color: white;
+    border-radius: 3px;
+    margin-bottom: 10px;
+    padding: 3px 5px;
+    text-align: center;
+    cursor: grab;
+}
+
+.draggable:hover {
+    font-weight: bold;
+}
+
+.dragging {
+    cursor: grabbing;
+}
