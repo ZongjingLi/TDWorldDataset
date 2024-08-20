@@ -56,17 +56,27 @@ class PlagueWorksController(Controller):
         self.output_directory = output_directory.format(name) + f"/{split}"
 
         """create the camera at the default location"""
-        self.camera_location = {"x" : 1., "y": 1., "z" : 1.}
-        self.camera_lookat = {"x" : 0, "y": 0, "z" : 0}
-        camera = ThirdPersonCamera(position=self.camera_location,
+        self.camera_locations = []
+        self.camera_lookats = []
+        if "camera" in load_scene:
+            cameras = []
+        else:
+            self.camera_location = {"x" : 1., "y": 1., "z" : 1.}
+            self.camera_lookat = {"x" : 0, "y": 0, "z" : 0}
+            camera = ThirdPersonCamera(position=self.camera_location,
                            look_at=self.camera_lookat,
                            avatar_id="a")
+            self.camera_locations.append(self.camera_location)
+            self.camera_lookats.append(self.camera_lookat)
+            cameras = [camera]
         self.camera = camera
+        self.cameras = cameras # create avatars
         self.mouse = Mouse(avatar_id="a") # create a keyboard to control 
         self.keyboard = Keyboard()
 
         """keep track of objects generated in the scene with: id, model, texture, color etc"""
         self.object_ids = []
+        self.object_infos = {}
         self.om= ObjectManager(transforms=False, bounds=True, rigidbodies=True)
         self.rng: np.random.RandomState = np.random.RandomState(32)
 
@@ -99,12 +109,23 @@ class PlagueWorksController(Controller):
 
         print("PlageWorks environment is created, all objects loaded.")
     
+    def add_camera(self,camera_location = None, camera_lookat = None, id = "avatar"):
+        camera_location = {"x": 1.0, "y":.5, "z":-1.0}
+        camera_lookat = {"x": 0.0, "y":0.0, "z":-0.0}
+        add_camera = ThirdPersonCamera(position = camera_location,
+                           look_at = camera_lookat,
+                           avatar_id=id)
+        self.add_ons.extend([add_camera])
+        self.cameras.append(add_camera)
+        self.camera_locations.append(camera_location)
+        self.camera_lookats.append(camera_lookat)
+    
     def save_scene_setup(self, path = None):
         if path is None: path = self.scene_save_path
         scene_setup = {}
         object_infos = []
         for object_id in self.object_ids:
-            object_infos[object_id] ={
+            object_infos[object_id] = {
                 "model": "vase_01",
                 "position": {"x":0,"y":0,"z":0},
                 "rotation": {"x":1.,"y":0,"z":1.},
@@ -126,34 +147,70 @@ class PlagueWorksController(Controller):
         self.keyboard.listen(key="C", function = self.capture)
         self.keyboard.listen(key="G", function = self.capture_sequence)
         self.keyboard.listen(key="F", function = self.apply_force)
+        self.keyboard.listen(key="M", function = self.capture_multiview)
 
     def apply_force(self):
         commands = []
         commands.append({"$type": "apply_force_to_object",
-                 "id": self.object_ids[-1],
-                 "force": {"x": -1.8, "y": 20., "z": 1.5}})
+                 "id": self.object_ids[np.random.randint(0, len(self.object_ids))],
+                 "force": {"x": (random.random() - 0.5) * 2, "y": 2., "z": (random.random() - 0.5) * 2}})
         self.communicate(commands)
     
-    def capture_sequence(self, roll_out = 3):
+    def capture_sequence(self, roll_out = 1):
         self.capture(f"{self.counter}_1")
         self.apply_force()
         for i in range(roll_out):
             self.communicate([])
         self.capture(f"{self.counter}_2")
         self.counter += 1
+
         return
 
-    def capture_multiview(self, view_num = 5):
-        pass
+    def capture_multiview(self, view_num = 5, save_name = None):
+        save_name = self.counter if save_name is None else save_name
+        img_name = f"{save_name}"
+        commands = [
+             {"$type": "set_pass_masks", "pass_masks": ["_img", "_id", "_albedo"], "avatar_id": f"{camera.avatar_id}"} for camera in self.cameras
+        ]
+        commands.extend([
+        {"$type": "send_images", "frequency": "always", "ids": [camera.avatar_id for camera in self.cameras]}])
+
+        """give out the color and id of the objects in the image"""
+        commands.extend([
+            {"$type": "send_segmentation_colors",
+            "frequency": "once"},
+            {"$type": "send_id_pass_segmentation_colors",
+            "frequency": "always"}])
+        responds = self.communicate(commands)
+
+        save_dir = self.output_directory+ f"/img/{img_name}"
+        if not os.path.isdir(save_dir):
+            os.mkdir(save_dir)
+        for i in range(len(responds)):
+            r_id = OutputData.get_data_type_id(responds[i])
+            if r_id == "imag":
+                image = Images(responds[i])
+                avatar_id = image.get_avatar_id()
+                TDWUtils.save_images(image, filename = f"{avatar_id}", output_directory = self.output_directory+ f"/img/{img_name}/")
+        
+        """save the camera information of the mulit view from different avatars"""
+        camera_info = {
+            "location": self.camera_locations,
+            "lookat": self.camera_lookats,
+            "names": [camera.avatar_id for camera in self.cameras]
+        }
+        save_json(camera_info, self.output_directory + f"/scene/camera_{img_name}.json")
+        self.counter += 1
 
     def capture(self, save_name = None):
         #print(controller.om.categories[self.object_ids[-1]])
         save_name = self.counter if save_name is None else save_name
         img_name = f"{save_name}"
-        commands = []
+        commands = [
+             {"$type": "set_pass_masks", "pass_masks": ["_img", "_id", "_albedo"], "avatar_id": f"{camera.avatar_id}"} for camera in self.cameras
+        ]
         commands.extend([
-        {"$type": "set_pass_masks", "pass_masks": ["_img", "_id", "_albedo"], "avatar_id": "a"},
-        {"$type": "send_images", "frequency": "always", "ids": ["a"]}])
+        {"$type": "send_images", "frequency": "always", "ids": [camera.avatar_id for camera in self.cameras]}])
 
         """give out the color and id of the objects in the image"""
         commands.extend([
@@ -173,9 +230,9 @@ class PlagueWorksController(Controller):
             if r_id == "imag":
                 image = Images(responds[i])
                 avatar_id = image.get_avatar_id()
-                TDWUtils.save_images(image, filename = f"{img_name}", output_directory = self.output_directory+ f"/img")
+                TDWUtils.save_images(image, filename = f"{img_name}_{avatar_id}", output_directory = self.output_directory+ f"/img")
 
-        id_map = (torch.tensor(plt.imread(self.output_directory + f"/img/id_{img_name}.png")) * 255).int()
+        id_map = (torch.tensor(plt.imread(self.output_directory + f"/img/id_{img_name}_{avatar_id}.png")) * 255).int()
 
         for i in range(len(responds)):
             r_id = OutputData.get_data_type_id(responds[i])
@@ -201,7 +258,13 @@ class PlagueWorksController(Controller):
 
         np.save(self.output_directory + f"/img/mask_{img_name}" ,binary_mask)
         np.save(self.output_directory + f"/scene/ids_{img_name}", object_id_sequence)
-        print(object_id_sequence)
+
+        camera_info = {
+            "location": self.camera_locations,
+            "lookat": self.camera_lookats,
+            "names": [camera.avatar_id for camera in self.cameras]
+        }
+        save_json(camera_info, self.output_directory + f"/scene/camera_{img_name}.json")
 
         print(f"done:{img_name}")
 
@@ -209,7 +272,7 @@ class PlagueWorksController(Controller):
                    model_name : str,
                    position : dict[str, float] = {"x": 0, "y":0.0, "z":0},
                    rotation : dict[str, float] = {"x": 0, "y":0, "z":0},
-                   scale : float = 1.0, id = None):
+                   scale : float = 1.0, color = None, id = None):
         """
         Args:
             model_name : a string corresponding to the model used to create
@@ -222,7 +285,27 @@ class PlagueWorksController(Controller):
             model_name = model_name, position = position, rotation = rotation
         )])
         self.object_ids.append(object_id)
+        self.object_infos[object_id] = {
+            "model": model_name,
+            "position": position,
+            "rotation": rotation,
+            "scale" : scale,
+        }
+
+        if color is not None:
+            color_ = {"r": 1.0, "g": 0, "b": 0, "a": 1.0}
+            self.communicate([
+                {"$type": "set_color",
+                "color": color,
+                "id": object_id}
+            ])
+            self.object_infos[object_id]["color"] = color
         print(f"add:{model_name}")
+        return
+
+    def replace_equivalence(self, equivalence_table):
+        for obj_id in self.object_ids:
+            model_name = self
         return
 
     def run(self):
@@ -232,19 +315,25 @@ class PlagueWorksController(Controller):
             self.communicate([])
         self.communicate({"$type": "terminate"})
 
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--dataset_name",           default = "ScourgeViews")
+parser.add_argument("--split",                  default = "train")
+parser.add_argument("--dataset_dir",            default =  "/Users/melkor/Documents/datasets/{}")
+args = parser.parse_args()
+
 if __name__ == "__main__":
+    
+    dataset_name = args.dataset_name
     dataset_name = "Plagueworks"
-    split = "train"
-    dataset_dir = "/Users/melkor/Documents/datasets/{}"
+    split = args.split
+    dataset_dir = args.dataset_dir
     controller = PlagueWorksController(
         split = split,
         name = dataset_name,
         output_directory = dataset_dir,
         load_scene = dataset_dir.format(dataset_name) + f"/{split}/scene_setup.json")
-    #controller.capture()
-    #controller.add_object("vase_01")
-    #controller.add_object("vase_05", position={"x":0.5, "y":0.0, "z":0.2})
 
+    #controller.add_camera()
     controller.run()
-   
-    #controller.capture()
